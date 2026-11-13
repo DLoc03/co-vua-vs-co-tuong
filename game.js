@@ -87,12 +87,57 @@ function firstTurn(armies) {
   return 'bottom'; // vua vs vua: bên dưới (Trắng) đi trước
 }
 
-function createBoard(armies) {
-  return {
+/*
+ * LUẬT BỔ TRỢ PHE TƯỚNG (khung cấu hình — mọi luật MẶC ĐỊNH TẮT, tắt hết thì game chạy y hệt v0.1.1).
+ * Chỉ thêm luật về điều kiện thắng/hòa, phong cấp, chiếu dai, hết nước — không đổi nước đi,
+ * không thêm/bớt quân, không đổi vị trí xếp quân ban đầu.
+ * Đã cài đủ 6 luật (giai đoạn 1: Du kích; giai đoạn 2: Giữ thành, Trường kỳ, Hậu cần có hạn,
+ * Chính nghĩa 1 + 2). Mọi luật chỉ áp dụng ở trận lai; trận gương tắt hoàn toàn.
+ */
+const DEFAULT_RULES = {
+  guerrillaChecks: 0,           // Du kích: bên Tướng chiếu đủ N lần thì thắng (0 = tắt)
+  defenderWinsOnDraw: false,    // Giữ thành: mọi kết quả hòa đều tính bên Tướng thắng
+  moveLimit: 0,                 // Trường kỳ kháng chiến: bên Vua đi đủ X nước chưa chiếu bí được thì bên Tướng thắng (0 = tắt)
+  promoteOnlyCaptured: false,   // Hậu cần có hạn: Tốt chỉ phong cấp thành quân cờ vua đã bị ăn
+  chessNoPerpetualCheck: false, // Chính nghĩa (1): bên Vua chiếu dai thì bên Vua thua
+  xiangqiStalemateDraw: false,  // Chính nghĩa (2): bên Tướng hết nước mà không bị chiếu thì hòa
+};
+
+/** Cấu hình luật hiệu lực của một bàn cờ (bàn dựng tay không có trường rules thì coi như tắt hết). */
+function rulesOf(board) { return board.rules || DEFAULT_RULES; }
+
+/*
+ * Phe cầm bộ cờ tướng / bộ cờ vua — CHỈ xác định được khi hai bên khác hệ (trận lai).
+ * Trận gương (hai bên cùng một hệ) trả về null: các luật bổ trợ "phe Tướng vs phe Vua" không áp dụng.
+ */
+function xiangqiSideOf(board) {
+  const top = board.armies.top === 'xiangqi';
+  const bottom = board.armies.bottom === 'xiangqi';
+  return top === bottom ? null : (top ? 'top' : 'bottom');
+}
+function chessSideOf(board) {
+  const top = board.armies.top === 'chess';
+  const bottom = board.armies.bottom === 'chess';
+  return top === bottom ? null : (top ? 'top' : 'bottom');
+}
+
+/** Bộ đếm phục vụ luật bổ trợ, lưu ngay trong state để hoàn tác nước tự khôi phục đúng giá trị. */
+function freshCounters() { return { xiangqiChecks: 0, chessMoves: 0 }; }
+
+function createBoard(armies, rules) {
+  const board = {
     armies: { top: armies.top, bottom: armies.bottom },
     pieces: [...buildArmy(armies.top, 'top'), ...buildArmy(armies.bottom, 'bottom')],
     turn: firstTurn(armies),
+    rules: { ...DEFAULT_RULES, ...(rules || {}) },
+    counters: freshCounters(),
+    // Lịch sử phục vụ phát hiện lặp thế và luật chiếu dai — engine tự giữ, giao diện không tự đếm nữa.
+    posHistory: [],   // khóa thế cờ tại vị trí 0 (mở ván) và sau mỗi nước đi
+    moveFlags: [],    // moveFlags[i] = { by, check }: nước đi tạo ra thế cờ thứ i+1, có phải nước chiếu không
+    capturedChess: [], // các loại quân cờ vua (Hậu/Xe/Tượng/Mã) đã bị ăn — dùng cho luật Hậu cần có hạn
   };
+  board.posHistory.push(positionKey(board));
+  return board;
 }
 
 function pieceAt(board, x, y) {
@@ -273,20 +318,69 @@ function pseudoMoves(board, piece) {
 }
 
 function cloneBoard(board) {
-  return { armies: { ...board.armies }, pieces: board.pieces.map(p => ({ ...p })), turn: board.turn };
+  return {
+    armies: { ...board.armies },
+    pieces: board.pieces.map(p => ({ ...p })),
+    turn: board.turn,
+    rules: board.rules ? { ...board.rules } : { ...DEFAULT_RULES },
+    counters: board.counters ? { ...board.counters } : freshCounters(),
+    posHistory: board.posHistory ? [...board.posHistory] : [positionKey(board)],
+    moveFlags: board.moveFlags ? board.moveFlags.map(f => ({ ...f })) : [],
+    capturedChess: board.capturedChess ? [...board.capturedChess] : [],
+  };
 }
 
 function applyMove(board, move) {
   const next = cloneBoard(board);
   const piece = pieceAt(next, move.fx, move.fy);
   if (!piece) return next;
+  const rules = rulesOf(next);
+  const xqSide = xiangqiSideOf(next);
+  // Luật bổ trợ chỉ áp dụng ở trận lai (đã chốt ở giai đoạn 1, điểm mơ hồ số 1 — phương án A).
+  const hybrid = xqSide !== null;
+  const captured = pieceAt(next, move.tx, move.ty);
+  // Hậu cần có hạn: ghi nhận quân cờ vua thuộc nhóm phong cấp được (Hậu/Xe/Tượng/Mã) bị ăn.
+  if (hybrid && rules.promoteOnlyCaptured && captured && captured.army === 'chess'
+    && ['queen', 'rook', 'bishop', 'knight'].includes(captured.kind)) {
+    next.capturedChess.push(captured.kind);
+  }
   next.pieces = next.pieces.filter(p => !(p.x === move.tx && p.y === move.ty));
   const moved = pieceAt(next, move.fx, move.fy);
   moved.x = move.tx; moved.y = move.ty;
   if (moved.kind === 'pawn' && move.ty === promotionRow(moved.side)) {
-    moved.kind = move.promotion || 'queen';
+    if (hybrid && rules.promoteOnlyCaptured) {
+      // Chỉ phong được thành quân có trong danh sách đã bị ăn, và tiêu hao 1 quân tương ứng.
+      // Không có quân phù hợp thì Tốt đứng ở hàng cuối mà không phong cấp
+      // (qua legalMoves thì nước vào hàng cuối khi danh sách rỗng đã bị chặn từ đầu).
+      const chosen = next.capturedChess.includes(move.promotion) ? move.promotion : next.capturedChess[0];
+      if (chosen) {
+        moved.kind = chosen;
+        next.capturedChess.splice(next.capturedChess.indexOf(chosen), 1);
+      }
+    } else {
+      moved.kind = move.promotion || 'queen';
+    }
   }
   next.turn = otherSide(board.turn);
+  // Ghi lịch sử lặp thế: khóa của thế cờ mới + cờ "nước vừa đi có phải nước chiếu không".
+  // Cờ chiếu chỉ tính thật khi luật chiếu dai bật (tiết kiệm tính toán, hành vi không đổi).
+  const opp = otherSide(piece.side);
+  const needCheck = rules.chessNoPerpetualCheck
+    || (hybrid && piece.side === xqSide && rules.guerrillaChecks > 0);
+  const givesCheck = needCheck ? isInCheck(next, opp) : false;
+  next.posHistory.push(positionKey(next));
+  next.moveFlags.push({ by: piece.side, check: givesCheck });
+  // Luật bổ trợ: cập nhật bộ đếm ngay trong state (bản sao mới — bàn cũ không đổi,
+  // nên hoàn tác nước chỉ cần quay lại state trước là bộ đếm tự đúng).
+  // Chỉ đếm khi luật tương ứng đang bật, để tắt hết thì hành vi y hệt v0.1.1.
+  if (hybrid && piece.side === xqSide && rules.guerrillaChecks > 0 && givesCheck) {
+    // Du kích: sau nước đi của bên Tướng, Vua địch bị chiếu (mọi loại chiếu, kể cả phi tướng) thì +1.
+    next.counters.xiangqiChecks += 1;
+  }
+  if (hybrid && piece.side !== xqSide && rules.moveLimit > 0) {
+    // Trường kỳ kháng chiến: đếm số nước bên Vua đã đi.
+    next.counters.chessMoves += 1;
+  }
   return next;
 }
 
@@ -307,12 +401,26 @@ function isInCheck(board, side) {
 
 function legalMoves(board, side) {
   const out = [];
+  const rules = rulesOf(board);
+  const limitPromotion = rules.promoteOnlyCaptured && xiangqiSideOf(board) !== null;
   for (const piece of board.pieces.filter(p => p.side === side)) {
     for (const dest of pseudoMoves(board, piece)) {
-      const move = { fx: piece.x, fy: piece.y, tx: dest.x, ty: dest.y };
-      if (piece.kind === 'pawn' && dest.y === promotionRow(side)) move.promotion = 'queen';
-      const after = applyMove(board, move);
-      if (!isInCheck(after, side)) out.push(move);
+      const base = { fx: piece.x, fy: piece.y, tx: dest.x, ty: dest.y };
+      if (piece.kind === 'pawn' && dest.y === promotionRow(side)) {
+        if (limitPromotion) {
+          // Hậu cần có hạn: chỉ sinh nước phong cấp thành các loại quân có trong danh sách đã bị ăn;
+          // danh sách rỗng thì nước đi/ăn vào hàng cuối bị loại hẳn (kiểu Grand Chess).
+          const kinds = [...new Set(board.capturedChess || [])];
+          if (!kinds.length) continue;
+          for (const kind of kinds) {
+            const move = { ...base, promotion: kind };
+            if (!isInCheck(applyMove(board, move), side)) out.push(move);
+          }
+          continue;
+        }
+        base.promotion = 'queen';
+      }
+      if (!isInCheck(applyMove(board, base), side)) out.push(base);
     }
   }
   return out;
@@ -323,13 +431,79 @@ function positionKey(board) {
   return parts.join('|') + '#' + board.turn;
 }
 
-/** Trạng thái ván cho bên sắp đi. stalemate ở đây là THUA theo luật đã chốt. */
+/** Thông tin lặp thế của thế cờ hiện tại: số lần xuất hiện của khóa hiện tại và vị trí các lần xuất hiện. */
+function repetitionInfo(board) {
+  const history = board.posHistory && board.posHistory.length ? board.posHistory : [positionKey(board)];
+  const key = history[history.length - 1];
+  const occurrences = [];
+  history.forEach((k, i) => { if (k === key) occurrences.push(i); });
+  return {
+    count: occurrences.length,
+    firstIndex: occurrences.length ? occurrences[0] : -1,
+    // Vị trí lần xuất hiện áp chót — mốc bắt đầu của VÒNG LẶP CUỐI (dùng cho luật chiếu dai)
+    secondIndex: occurrences.length >= 2 ? occurrences[occurrences.length - 2] : -1,
+    lastIndex: history.length - 1,
+  };
+}
+
+/** Kết quả HÒA theo một lý do gốc — luật Giữ thành (nếu bật) chuyển thành thắng cho bên Tướng. */
+function drawResult(board, reason, check) {
+  const rules = rulesOf(board);
+  const xqSide = xiangqiSideOf(board);
+  if (rules.defenderWinsOnDraw && xqSide) {
+    return { over: true, winner: xqSide, reason: 'defenderWin:' + reason, check };
+  }
+  return { over: true, winner: null, reason, check };
+}
+
+/*
+ * Trạng thái ván cho bên sắp đi, xét theo THỨ TỰ ƯU TIÊN đã chốt:
+ * 1) Chiếu bí / hết nước (riêng bên Tướng hết nước không bị chiếu thì hòa nếu bật xiangqiStalemateDraw).
+ * 2) Du kích: bên Tướng chiếu đủ N lần.
+ * 3) Chiếu dai của bên Vua (chessNoPerpetualCheck): bên Vua thua.
+ * 4) Lặp thế 3 lần: hòa.
+ * 5) Trường kỳ (moveLimit): bên Vua đã đi đủ X nước mà chưa thắng thì bên Tướng thắng.
+ * 6) Mọi kết quả hòa (từ mục 1 hoặc 4) đều bị Giữ thành (defenderWinsOnDraw) chuyển thành bên Tướng thắng.
+ */
 function gameStatus(board) {
   const side = board.turn;
   const moves = legalMoves(board, side);
   const check = isInCheck(board, side);
+  const rules = rulesOf(board);
+  const xqSide = xiangqiSideOf(board);
+  // 1) Chiếu bí / hết nước — luôn xét trước: nước thứ X của bên Vua mà chiếu bí
+  //    thì bên Vua thắng theo mục này, không bị Trường kỳ "cướp" kết quả.
   if (moves.length === 0) {
-    return { over: true, winner: otherSide(side), reason: check ? 'checkmate' : 'stalemate', check };
+    if (check) return { over: true, winner: otherSide(side), reason: 'checkmate', check };
+    if (side === xqSide && rules.xiangqiStalemateDraw) return drawResult(board, 'stalemateDraw', check);
+    return { over: true, winner: otherSide(side), reason: 'stalemate', check };
+  }
+  // 2) Du kích (ưu tiên hơn lặp thế — đã chốt ở giai đoạn 1, điểm mơ hồ số 3, phương án A;
+  //    thứ tự nằm ngay trong engine này, không phụ thuộc giao diện).
+  if (xqSide && rules.guerrillaChecks > 0 && board.counters
+    && board.counters.xiangqiChecks >= rules.guerrillaChecks) {
+    return { over: true, winner: xqSide, reason: 'guerrilla', check };
+  }
+  // 3) + 4) Lặp thế 3 lần: chiếu dai của bên Vua xét trước kết quả hòa.
+  const rep = repetitionInfo(board);
+  if (rep.count >= 3) {
+    const chessSide = chessSideOf(board);
+    if (chessSide && rules.chessNoPerpetualCheck) {
+      // Chỉ xét VÒNG LẶP CUỐI: các nước đi từ lần xuất hiện thứ hai của thế cờ tới lần thứ ba (hiện tại).
+      // Bên Vua thua nếu MỌI nước của bên Vua trong vòng lặp đó đều là nước chiếu.
+      // (Bên Tướng chiếu dai thì hợp lệ — chỉ xét nước của bên Vua.)
+      const cycleMoves = (board.moveFlags || []).slice(rep.secondIndex, rep.lastIndex);
+      const chessMoves = cycleMoves.filter(f => f.by === chessSide);
+      if (chessMoves.length && chessMoves.every(f => f.check)) {
+        return { over: true, winner: xqSide, reason: 'perpetualCheck', check };
+      }
+    }
+    return drawResult(board, 'repetition', check);
+  }
+  // 5) Trường kỳ kháng chiến: bên Vua đã đi đủ X nước mà ván chưa kết thúc.
+  if (xqSide && rules.moveLimit > 0 && board.counters
+    && board.counters.chessMoves >= rules.moveLimit) {
+    return { over: true, winner: xqSide, reason: 'moveLimit', check };
   }
   return { over: false, winner: null, reason: null, check };
 }
@@ -378,10 +552,11 @@ function describeMove(boardBefore, move) {
 }
 
 const Engine = {
-  COLS, ROWS, PIECE_VALUE, PIECE_NAME_VI,
+  COLS, ROWS, PIECE_VALUE, PIECE_NAME_VI, DEFAULT_RULES,
   otherSide, dirOf, inBoard, inPalace, inHomeHalf, crossedRiver, promotionRow, isRoyal,
+  rulesOf, xiangqiSideOf, chessSideOf,
   buildArmy, firstTurn, createBoard, pieceAt, pseudoMoves, attackSquares,
-  applyMove, royalOf, isSquareAttacked, isInCheck, legalMoves, positionKey,
+  applyMove, royalOf, isSquareAttacked, isInCheck, legalMoves, positionKey, repetitionInfo,
   gameStatus, evaluate, chooseAiMove, glyphOf, coordName, describeMove,
 };
 if (typeof module !== 'undefined' && module.exports) module.exports = Engine;

@@ -10,7 +10,7 @@
 <header class="site-header">
   <h1>⚔️ Cờ Vua <span class="vs">vs</span> Cờ Tướng</h1>
   <p class="tagline">Một bàn cờ, hai nền văn minh. Bên cầm bộ cờ tướng đấu với bên cầm bộ cờ vua.</p>
-  <span class="version">Bản MVP v0.1.1 — đang lấy ý kiến người chơi</span>
+  <span class="version">Bản v0.2.0 — đang lấy ý kiến người chơi</span>
 </header>
 
 <main>
@@ -55,6 +55,65 @@
         </select>
       </div>
       <p class="hint" id="matchupHint">Đối kháng lai kinh điển: Tướng ở trên, Vua ở dưới. Ở chế độ luyện tập, bạn cầm quân bên dưới, máy cầm quân bên trên — cứ chọn trùng loại (Vua vs Vua, Tướng vs Tướng) nếu muốn tập riêng từng hệ.</p>
+    </div>
+
+    <div id="rulesBox" class="rules-box">
+      <label class="field-label">🛡️ Luật bổ trợ phe Tướng <span class="hint-inline">(chỉ áp dụng cho trận lai — phe Tướng đang yếu thế hơn)</span></label>
+      <div class="radio-cards rules-presets">
+        <label class="radio-card">
+          <input type="radio" name="rulesPreset" value="original" checked>
+          <strong>Bản gốc</strong>
+          <small>Tắt hết luật bổ trợ — chơi đúng luật lai như bản đầu</small>
+        </label>
+        <label class="radio-card">
+          <input type="radio" name="rulesPreset" value="suggested">
+          <strong>Đề xuất</strong>
+          <small>Du kích N=3 + Hậu cần có hạn + Giữ thành</small>
+        </label>
+        <label class="radio-card">
+          <input type="radio" name="rulesPreset" value="custom">
+          <strong>Tùy chỉnh</strong>
+          <small>Tự bật/tắt từng luật theo ý bạn</small>
+        </label>
+      </div>
+      <div id="rulesCustom" hidden>
+        <label class="rule-row">
+          <input type="checkbox" id="ruleGuerrilla">
+          <span><strong>⚔️ Du kích</strong> — Bên Tướng hễ chiếu đủ số lần quy định là thắng ngay, khỏi cần chiếu bí.</span>
+          <select id="ruleGuerrillaN" aria-label="Số lần chiếu để thắng Du kích">
+            <option value="3" selected>3 lần chiếu</option>
+            <option value="4">4 lần chiếu</option>
+            <option value="5">5 lần chiếu</option>
+          </select>
+        </label>
+        <label class="rule-row">
+          <input type="checkbox" id="ruleDefender">
+          <span><strong>🏯 Giữ thành</strong> — Mọi kết quả hòa (lặp thế, hết nước theo Chính nghĩa) đều chuyển thành bên Tướng thắng.</span>
+        </label>
+        <label class="rule-row">
+          <input type="checkbox" id="ruleMoveLimit">
+          <span><strong>⏳ Trường kỳ kháng chiến</strong> — Bên Vua đi đủ số nước quy định mà chưa chiếu bí được thì bên Tướng thắng.</span>
+          <select id="ruleMoveLimitX" aria-label="Số nước tối đa của bên Vua">
+            <option value="60" selected>60 nước</option>
+            <option value="70">70 nước</option>
+            <option value="80">80 nước</option>
+          </select>
+        </label>
+        <label class="rule-row">
+          <input type="checkbox" id="rulePromote">
+          <span><strong>🎒 Hậu cần có hạn</strong> — Tốt vua chỉ phong cấp thành quân mà bên Vua đã bị ăn mất; kho trống thì Tốt không vào được hàng cuối.</span>
+        </label>
+        <label class="rule-row">
+          <input type="checkbox" id="rulePerpetual">
+          <span><strong>⚖️ Chính nghĩa — chiếu dai</strong> — Bên Vua chiếu dai (lặp thế mà mọi nước của bên Vua đều là nước chiếu) thì bên Vua thua. Bên Tướng chiếu dai vẫn hợp lệ.</span>
+        </label>
+        <label class="rule-row">
+          <input type="checkbox" id="ruleStalemate">
+          <span><strong>⚖️ Chính nghĩa — giữ hòa</strong> — Bên Tướng hết nước đi mà không bị chiếu thì hòa, thay vì thua như luật gốc.</span>
+        </label>
+      </div>
+      <p class="hint" id="rulesOnlineNote">Chế độ online: luật áp dụng là luật <strong>chủ phòng</strong> chọn khi tạo phòng. Khách vào phòng sẽ thấy danh sách luật trong ván ở chế độ chỉ xem.</p>
+      <p class="hint" id="rulesGuestNote" hidden>🔒 Bạn đang vào phòng của người khác — luật do chủ phòng quyết định, mục này chỉ để xem, không sửa được.</p>
     </div>
 
     <div id="skinVoteFields" class="grid-2">
@@ -108,10 +167,10 @@
       <ul>
         <li>Bàn thống nhất 9 cột × 10 hàng. Bên cờ tướng đi trước. Hàng cuối cờ vua ở cột 1–8, Vua đứng cột 5 đối đầu Tướng; riêng cánh vua đổi chỗ Mã–Xe (kiểu Chess960) để Pháo không ăn Xe miễn phí ngay nước đầu — cả hai Pháo chỉ ăn được Mã có Xe bảo vệ.</li>
         <li>Phi tướng biến thể B: Tướng và Vua đối mặt trên cột trống chỉ tính là <em>chiếu từ xa</em>, Tướng không bay sang ăn Vua.</li>
-        <li>Hết nước đi hợp lệ = <strong>thua</strong> (kể cả khi không bị chiếu). Lặp lại thế cờ 3 lần = hòa. Chưa áp dụng luật cấm chiếu dai.</li>
+        <li>Hết nước đi hợp lệ = <strong>thua</strong> (kể cả khi không bị chiếu). Lặp lại thế cờ 3 lần = hòa.</li>
         <li>Không nhập thành, không bắt tốt qua đường trong bản MVP. Tốt vua được phong cấp (Hậu/Xe/Tượng/Mã vua). Chốt tướng lên hàng cuối chỉ đi ngang.</li>
         <li>Chiếu được tính đúng luật từng quân: Pháo cần ngòi, Mã tướng bị cản chân, Tượng tướng bị cản mắt tượng và không qua sông, Chốt qua sông mới đi ngang… Không được tự đi vào chiếu; ván kết thúc ở chiếu bí / hết nước, không ăn thật Vua/Tướng.</li>
-        <li>Chưa cân bằng nerf/boost quân nào — giữ nguyên hai bộ quân để người chơi test và góp ý.</li>
+        <li>Không đổi nước đi, số quân hay vị trí xếp quân của hai bộ cờ. Từ v0.2.0 có thêm <strong>Luật bổ trợ phe Tướng</strong> (Du kích, Giữ thành, Trường kỳ kháng chiến, Hậu cần có hạn, Chính nghĩa) — mặc định tắt (bản gốc), bật được ở mục thiết lập phía trên để thử cân bằng cho phe yếu thế.</li>
       </ul>
     </details>
   </section>
@@ -120,6 +179,14 @@
   <section id="gameScreen" class="game-layout" hidden>
     <div class="board-column">
       <div id="turnBanner" class="turn-banner">—</div>
+      <div id="rulesBar" class="rules-bar" hidden>
+        <div id="rulesLine" class="rules-line"></div>
+        <div class="rules-counters">
+          <span id="guerrillaCounter" class="rule-chip" hidden></span>
+          <span id="moveLimitCounter" class="rule-chip" hidden></span>
+          <span id="promoPool" class="rule-chip" hidden></span>
+        </div>
+      </div>
       <div id="board" class="board skin-squares" role="application" aria-label="Bàn cờ">
         <div id="boardBg" class="board-bg"></div>
         <div id="hlLayer" class="layer"></div>
@@ -187,7 +254,7 @@
 </div>
 
 <footer>
-  <p>Cờ Vua vs Cờ Tướng — dự án game mở, bản MVP v0.1.1. Chạy offline hoàn toàn (trừ chế độ Online Beta). Đưa lên GitHub Pages: chỉ cần đẩy toàn bộ thư mục này lên repo và bật Pages.</p>
+  <p>Cờ Vua vs Cờ Tướng — dự án game mở, bản MVP v0.2.0. Chạy offline hoàn toàn (trừ chế độ Online Beta). Đưa lên GitHub Pages: chỉ cần đẩy toàn bộ thư mục này lên repo và bật Pages.</p>
 </footer>
 
 <script src="game.js"></script>

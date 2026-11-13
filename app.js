@@ -4,7 +4,7 @@
 // Chủ dự án: điền link trang góp ý của repo (ví dụ GitHub Issues) vào đây khi tung bản public.
 const FEEDBACK_URL = 'https://github.com/DLoc03/co-vua-vs-co-tuong/issues';
 const PEER_PREFIX = 'cvvct-game-';
-const VERSION = 'v0.1.1';
+const VERSION = 'v0.2.0';
 
 const $ = id => document.getElementById(id);
 const E = window.Engine;
@@ -13,9 +13,9 @@ const G = {
   mode: 'hotseat',
   board: null, skin: 'squares',
   selected: null, legalForSelected: [],
-  history: [], snapshots: [], posCounts: {},
+  history: [], snapshots: [],
   capturedBy: { top: [], bottom: [] },
-  lastMove: null, over: false, result: null,
+  lastMove: null, over: false, result: null, lastReason: null,
   aiSide: 'top', mySide: null,
   pendingPromo: null, pendingGlyphId: null, pieceEls: new Map(),
   online: { peer: null, conn: null, isHost: false, code: '', started: false },
@@ -157,6 +157,7 @@ function render() {
   const lastText = G.history.length ? G.history[G.history.length - 1].text : null;
   $('boardNote').textContent = (lastText ? `👉 Nước vừa đi: ${lastText} · ` : '')
     + `Kiểu bàn: ${skinName(G.skin)} · Chế độ: ${G.mode === 'ai' ? 'luyện tập với máy' : G.mode === 'online' ? 'online beta' : '2 người cùng máy'} · ${VERSION}`;
+  updateRulesBar();
 }
 
 function sizePieces() {
@@ -178,26 +179,26 @@ window.addEventListener('resize', sizePieces);
 /* ---------------- Luồng ván đấu ---------------- */
 function snapshot() {
   return JSON.parse(JSON.stringify({
-    board: G.board, history: G.history, posCounts: G.posCounts,
-    capturedBy: G.capturedBy, lastMove: G.lastMove, over: G.over, result: G.result,
+    board: G.board, history: G.history,
+    capturedBy: G.capturedBy, lastMove: G.lastMove, over: G.over, result: G.result, lastReason: G.lastReason,
   }));
 }
 function restore(snap) {
-  G.board = snap.board; G.history = snap.history; G.posCounts = snap.posCounts;
+  G.board = snap.board; G.history = snap.history;
   G.capturedBy = snap.capturedBy; G.lastMove = snap.lastMove; G.over = snap.over; G.result = snap.result;
+  G.lastReason = snap.lastReason || null;
   G.selected = null; G.legalForSelected = [];
 }
 
-function startGame(skin, armies) {
+function startGame(skin, armies, rules) {
   G.skin = skin;
-  G.board = E.createBoard(armies);
+  G.board = E.createBoard(armies, rules || readRulesFromUI());
   G.pieceEls.clear();
   $('pieceLayer').innerHTML = '';
   G.pendingGlyphId = null;
   G.history = []; G.snapshots = []; G.capturedBy = { top: [], bottom: [] };
-  G.lastMove = null; G.over = false; G.result = null;
+  G.lastMove = null; G.over = false; G.result = null; G.lastReason = null;
   G.selected = null; G.legalForSelected = [];
-  G.posCounts = {}; G.posCounts[E.positionKey(G.board)] = 1;
   $('setupScreen').hidden = true;
   $('gameScreen').hidden = false;
   $('endModal').hidden = true;
@@ -207,12 +208,39 @@ function startGame(skin, armies) {
 
 function endGame(winner, reasonText) {
   G.over = true;
-  G.result = { winner, text: winner ? `🏆 ${sideName(winner)} THẮNG — ${reasonText}` : `🤝 HÒA — ${reasonText}` };
+  let text = winner ? `🏆 ${sideName(winner)} THẮNG — ${reasonText}` : `🤝 HÒA — ${reasonText}`;
+  // Vinh danh khi phe yếu thế (bên Tướng trong trận lai) giành chiến thắng
+  if (winner && G.board && E.xiangqiSideOf(G.board) === winner) {
+    text += '\n⚔️ Chiến thắng của phe yếu thế — giáo mác thắng súng đạn!';
+  }
+  G.result = { winner, text };
   render();
   $('endTitle').textContent = winner ? '🏆 Có người thắng!' : '🤝 Hòa!';
   $('endText').textContent = G.result.text;
   $('endModal').hidden = false;
   if (G.mode === 'online' && G.online.isHost) broadcastState();
+}
+
+/* Chuyển mã lý do kết thúc của engine thành câu hiển thị cho người chơi. */
+function reasonText(reason) {
+  if (!reason) return '';
+  const rules = (G.board && G.board.rules) || {};
+  const counters = (G.board && G.board.counters) || { xiangqiChecks: 0, chessMoves: 0 };
+  if (reason.startsWith('defenderWin:')) {
+    const src = reason.slice('defenderWin:'.length);
+    return src === 'repetition'
+      ? 'theo luật Giữ thành (ván lặp thế 3 lần).'
+      : 'theo luật Giữ thành (bên Tướng hết nước nhưng không bị chiếu).';
+  }
+  return {
+    checkmate: 'chiếu bí!',
+    stalemate: 'đối thủ hết nước đi hợp lệ (theo luật đã chốt, hết nước = thua).',
+    stalemateDraw: 'bên Tướng hết nước đi nhưng không bị chiếu — hòa theo luật Chính nghĩa.',
+    guerrilla: `theo luật Du kích (chiếu ${counters.xiangqiChecks} lần).`,
+    perpetualCheck: 'bên Vua thua do chiếu dai (luật Chính nghĩa).',
+    moveLimit: `theo luật Trường kỳ kháng chiến (bên Vua đã đi đủ ${rules.moveLimit || counters.chessMoves} nước).`,
+    repetition: 'lặp lại thế cờ 3 lần.',
+  }[reason] || reason;
 }
 
 function performMove(move, source) {
@@ -243,16 +271,11 @@ function performMove(move, source) {
   G.lastMove = finalMove;
   G.selected = null; G.legalForSelected = [];
 
-  const key = E.positionKey(G.board);
-  G.posCounts[key] = (G.posCounts[key] || 0) + 1;
-
+  // Kết quả ván (kể cả lặp thế) do engine quyết định toàn bộ — giao diện chỉ đọc.
   const st = E.gameStatus(G.board);
   if (st.over) {
-    endGame(st.winner, st.reason === 'checkmate' ? 'chiếu bí!' : 'đối thủ hết nước đi hợp lệ (theo luật đã chốt, hết nước = thua).');
-    return true;
-  }
-  if (G.posCounts[key] >= 3) {
-    endGame(null, 'lặp lại thế cờ 3 lần.');
+    G.lastReason = st.reason;
+    endGame(st.winner, reasonText(st.reason));
     return true;
   }
   if (st.check) {
@@ -290,6 +313,7 @@ $('board').addEventListener('click', ev => {
       const piece = E.pieceAt(G.board, move.fx, move.fy);
       if (piece.kind === 'pawn' && move.ty === E.promotionRow(piece.side)) {
         G.pendingPromo = { ...move };
+        syncPromoChoices(move);
         $('promoModal').hidden = false;
         return;
       }
@@ -316,6 +340,88 @@ document.querySelectorAll('[data-promo]').forEach(btn => {
   });
 });
 
+/* ---------------- Luật bổ trợ phe Tướng: cấu hình & hiển thị ---------------- */
+const SUGGESTED_RULES = {
+  guerrillaChecks: 3, defenderWinsOnDraw: true, moveLimit: 0,
+  promoteOnlyCaptured: true, chessNoPerpetualCheck: false, xiangqiStalemateDraw: false,
+};
+
+/** Đọc cấu hình luật từ màn hình thiết lập theo preset đang chọn. */
+function readRulesFromUI() {
+  const preset = (document.querySelector('input[name="rulesPreset"]:checked') || {}).value || 'original';
+  if (preset === 'suggested') return { ...SUGGESTED_RULES };
+  if (preset === 'custom') {
+    return {
+      guerrillaChecks: $('ruleGuerrilla').checked ? parseInt($('ruleGuerrillaN').value, 10) : 0,
+      defenderWinsOnDraw: $('ruleDefender').checked,
+      moveLimit: $('ruleMoveLimit').checked ? parseInt($('ruleMoveLimitX').value, 10) : 0,
+      promoteOnlyCaptured: $('rulePromote').checked,
+      chessNoPerpetualCheck: $('rulePerpetual').checked,
+      xiangqiStalemateDraw: $('ruleStalemate').checked,
+    };
+  }
+  return { ...E.DEFAULT_RULES };
+}
+
+/** Danh sách luật đang bật của một bàn cờ, dạng câu chữ để hiển thị và ghi biên bản. */
+function activeRulesList(board) {
+  if (!board || !board.rules || !E.xiangqiSideOf(board)) return [];
+  const r = board.rules, out = [];
+  if (r.guerrillaChecks > 0) out.push(`Du kích (chiếu ${r.guerrillaChecks} lần)`);
+  if (r.defenderWinsOnDraw) out.push('Giữ thành');
+  if (r.moveLimit > 0) out.push(`Trường kỳ kháng chiến (${r.moveLimit} nước)`);
+  if (r.promoteOnlyCaptured) out.push('Hậu cần có hạn');
+  if (r.chessNoPerpetualCheck) out.push('Chính nghĩa — chiếu dai');
+  if (r.xiangqiStalemateDraw) out.push('Chính nghĩa — hết nước hòa');
+  return out;
+}
+
+/** Mục luật bổ trợ chỉ hiện ở trận lai; panel Tùy chỉnh chỉ hiện khi chọn preset Tùy chỉnh. */
+function syncRulesBox() {
+  const mode = currentMode();
+  const hybrid = mode === 'online' || $('topArmy').value !== $('bottomArmy').value;
+  $('rulesBox').hidden = !hybrid;
+  const preset = (document.querySelector('input[name="rulesPreset"]:checked') || {}).value;
+  $('rulesCustom').hidden = preset !== 'custom';
+  $('rulesOnlineNote').hidden = mode !== 'online';
+}
+
+/** Khóa/mở khóa toàn bộ điều khiển luật (khách online chỉ xem, không sửa). */
+function setRulesReadOnly(readOnly) {
+  document.querySelectorAll('#rulesBox input, #rulesBox select').forEach(el => { el.disabled = readOnly; });
+  $('rulesGuestNote').hidden = !readOnly;
+}
+
+/** Thanh thông tin luật trong ván: tắt hết luật thì ẩn hẳn (giống hệt bản gốc). */
+function updateRulesBar() {
+  const list = G.board ? activeRulesList(G.board) : [];
+  if (!list.length) { $('rulesBar').hidden = true; return; }
+  const r = G.board.rules, c = G.board.counters || { xiangqiChecks: 0, chessMoves: 0 };
+  $('rulesBar').hidden = false;
+  $('rulesLine').textContent = '📜 Luật bổ trợ đang bật: ' + list.join(' · ');
+  $('guerrillaCounter').hidden = !(r.guerrillaChecks > 0);
+  if (r.guerrillaChecks > 0) $('guerrillaCounter').textContent = `⚔️ Du kích: ${c.xiangqiChecks}/${r.guerrillaChecks} lần chiếu`;
+  $('moveLimitCounter').hidden = !(r.moveLimit > 0);
+  if (r.moveLimit > 0) $('moveLimitCounter').textContent = `⏳ Trường kỳ: còn ${Math.max(0, r.moveLimit - c.chessMoves)} nước`;
+  $('promoPool').hidden = !r.promoteOnlyCaptured;
+  if (r.promoteOnlyCaptured) {
+    const pool = (G.board.capturedChess || []).map(k => E.PIECE_NAME_VI[k]);
+    $('promoPool').textContent = '🎒 Kho phong cấp: ' + (pool.length ? pool.join(', ') : 'trống');
+  }
+}
+
+/** Hộp chọn phong cấp: bật Hậu cần có hạn thì chỉ hiện các quân còn trong kho. */
+function syncPromoChoices(move) {
+  const board = G.board;
+  let kinds = ['queen', 'rook', 'bishop', 'knight'];
+  if (board && board.rules && board.rules.promoteOnlyCaptured && E.xiangqiSideOf(board)) {
+    kinds = [...new Set(G.legalForSelected
+      .filter(m => m.tx === move.tx && m.ty === move.ty && m.promotion)
+      .map(m => m.promotion))];
+  }
+  document.querySelectorAll('[data-promo]').forEach(b => { b.hidden = !kinds.includes(b.dataset.promo); });
+}
+
 /* ---------------- Thiết lập & điều khiển ---------------- */
 function currentMode() { return document.querySelector('input[name="mode"]:checked').value; }
 
@@ -326,8 +432,12 @@ function syncSetupVisibility() {
   $('startBtn').hidden = mode === 'online';
   $('matchupFields').style.opacity = mode === 'online' ? '.45' : '1';
   $('skinVoteFields').style.opacity = mode === 'online' ? '.45' : '1';
+  syncRulesBox();
 }
 document.querySelectorAll('input[name="mode"]').forEach(r => r.addEventListener('change', syncSetupVisibility));
+$('topArmy').addEventListener('change', syncRulesBox);
+$('bottomArmy').addEventListener('change', syncRulesBox);
+document.querySelectorAll('input[name="rulesPreset"]').forEach(r => r.addEventListener('change', syncRulesBox));
 
 function resolveSkin(pref1, pref2, done) {
   if (pref1 === pref2) { done(pref1, false); return; }
@@ -393,10 +503,12 @@ $('endSetupBtn').addEventListener('click', () => {
 $('endWatchBtn').addEventListener('click', () => { $('endModal').hidden = true; });
 
 $('copyRecordBtn').addEventListener('click', async () => {
+  const ruleList = activeRulesList(G.board);
   const lines = [
     `Cờ Vua vs Cờ Tướng — biên bản ván đấu (${VERSION})`,
     `Chế độ: ${G.mode} · Bàn: ${skinName(G.skin)} · Trên: ${armyName(G.board.armies.top)} · Dưới: ${armyName(G.board.armies.bottom)}`,
-    `Kết quả: ${G.over && G.result ? G.result.text : 'ván chưa kết thúc'}`,
+    `Luật bổ trợ: ${ruleList.length ? ruleList.join('; ') : 'không (bản gốc)'}`,
+    `Kết quả: ${G.over && G.result ? G.result.text.replace('\n', ' ') : 'ván chưa kết thúc'}${G.over && G.lastReason ? ` [mã lý do: ${G.lastReason}]` : ''}`,
     '',
     ...G.history.map((h, i) => `${i + 1}. ${h.text}`),
   ].join('\n');
@@ -429,18 +541,20 @@ function onlineStatus(text) { $('onlineStatus').textContent = text; }
 
 function serializeGame() {
   return JSON.parse(JSON.stringify({
-    skin: G.skin, board: G.board, history: G.history, posCounts: G.posCounts,
-    capturedBy: G.capturedBy, lastMove: G.lastMove, over: G.over, result: G.result,
+    skin: G.skin, board: G.board, history: G.history,
+    capturedBy: G.capturedBy, lastMove: G.lastMove, over: G.over, result: G.result, lastReason: G.lastReason,
   }));
 }
 function applyRemoteState(s, yourSide) {
   if (yourSide) G.mySide = yourSide;
+  if (G.mode === 'online' && !G.online.isHost) setRulesReadOnly(true); // khách chỉ xem luật của chủ phòng
   if (!s.history || s.history.length === 0) {
     G.pieceEls.clear();
     $('pieceLayer').innerHTML = '';
   }
-  G.skin = s.skin; G.board = s.board; G.history = s.history; G.posCounts = s.posCounts;
+  G.skin = s.skin; G.board = s.board; G.history = s.history;
   G.capturedBy = s.capturedBy; G.lastMove = s.lastMove; G.over = s.over; G.result = s.result;
+  G.lastReason = s.lastReason || null;
   G.selected = null; G.legalForSelected = []; G.snapshots = [];
   $('setupScreen').hidden = true;
   $('gameScreen').hidden = false;
@@ -461,6 +575,7 @@ $('createRoomBtn').addEventListener('click', async () => {
   try {
     await loadPeerJs();
     G.mode = 'online';
+    setRulesReadOnly(false); // chủ phòng được chọn luật
     const code = makeRoomCode();
     G.online.code = code;
     G.online.isHost = true;
@@ -500,6 +615,7 @@ $('joinRoomBtn').addEventListener('click', async () => {
   try {
     await loadPeerJs();
     G.mode = 'online';
+    setRulesReadOnly(true); // khách vào phòng: luật do chủ phòng quyết định
     const code = $('roomCodeInput').value.trim().toUpperCase();
     if (code.length !== 5) { onlineStatus('Mã phòng gồm 5 ký tự — hãy kiểm tra lại.'); return; }
     G.online.isHost = false;

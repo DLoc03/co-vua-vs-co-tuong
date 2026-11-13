@@ -97,6 +97,114 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const bg = $('boardBg').innerHTML;
   check('lines skin draws intersection grid + river text', bg.includes('楚河') && bg.includes('<line'), bg.slice(0, 80));
 
+  // ================= GIAI ĐOẠN 3: LUẬT BỔ TRỢ TRÊN GIAO DIỆN =================
+  const setRadio = (name, value) => {
+    const r = doc.querySelector(`input[name="${name}"][value="${value}"]`);
+    r.checked = true; r.dispatchEvent(new window.Event('change', { bubbles: true }));
+  };
+
+  // --- Mục luật chỉ hiện ở trận lai ---
+  $('newGameBtn').click();
+  await sleep(60);
+  check('rules box visible in hybrid matchup', !$('rulesBox').hidden);
+  $('topArmy').value = 'chess'; $('topArmy').dispatchEvent(new window.Event('change', { bubbles: true }));
+  check('rules box hidden in mirror matchup', $('rulesBox').hidden);
+  $('topArmy').value = 'xiangqi'; $('topArmy').dispatchEvent(new window.Event('change', { bubbles: true }));
+  check('rules box back when hybrid again', !$('rulesBox').hidden);
+
+  // --- Preset Đề xuất: thanh luật + bộ đếm hiện trong ván ---
+  setRadio('rulesPreset', 'suggested');
+  $('skinP1').value = 'squares'; $('skinP2').value = 'squares';
+  $('startBtn').click();
+  await sleep(300);
+  check('suggested preset: rules bar visible', !$('rulesBar').hidden);
+  check('rules line lists Du kich + Giu thanh + Hau can', $('rulesLine').textContent.includes('Du kích')
+    && $('rulesLine').textContent.includes('Giữ thành') && $('rulesLine').textContent.includes('Hậu cần có hạn'),
+    $('rulesLine').textContent);
+  check('guerrilla counter shows 0/3', !$('guerrillaCounter').hidden && $('guerrillaCounter').textContent.includes('0/3'),
+    $('guerrillaCounter').textContent);
+  check('promotion pool chip shows empty pool', !$('promoPool').hidden && $('promoPool').textContent.includes('trống'),
+    $('promoPool').textContent);
+
+  // --- Preset Bản gốc: không hiện bất cứ thứ gì thêm (giống v0.1.1) ---
+  $('newGameBtn').click();
+  await sleep(60);
+  setRadio('rulesPreset', 'original');
+  $('startBtn').click();
+  await sleep(300);
+  check('original preset: rules bar hidden', $('rulesBar').hidden);
+
+  // --- Thế cờ dựng sẵn qua applyRemoteState (dùng chung đường đồng bộ của online) ---
+  const CP = (id, army, kind, side, x, y) => ({ id, army, kind, side, x, y });
+  const craftState = board => ({
+    skin: 'squares', board, history: [], capturedBy: { top: [], bottom: [] },
+    lastMove: null, over: false, result: null, lastReason: null,
+  });
+  const freshCounters = () => ({ xiangqiChecks: 0, chessMoves: 0 });
+
+  // Hộp phong cấp chỉ hiện quân có trong kho (chỉ Xe)
+  const promoBoardState = {
+    armies: { top: 'xiangqi', bottom: 'chess' },
+    pieces: [CP('g1', 'xiangqi', 'general', 'top', 3, 0), CP('c1', 'xiangqi', 'chariot', 'top', 0, 5),
+      CP('k1', 'chess', 'king', 'bottom', 4, 9), CP('p1', 'chess', 'pawn', 'bottom', 0, 1)],
+    turn: 'bottom',
+    rules: { ...window.Engine.DEFAULT_RULES, promoteOnlyCaptured: true },
+    counters: freshCounters(), posHistory: [], moveFlags: [], capturedChess: ['rook'],
+  };
+  window.applyRemoteState(craftState(JSON.parse(JSON.stringify(promoBoardState))), null);
+  await sleep(100);
+  clickBoard(0, 1);
+  await sleep(60);
+  clickBoard(0, 0);
+  await sleep(60);
+  check('promotion modal opens', !$('promoModal').hidden);
+  const visiblePromos = [...doc.querySelectorAll('[data-promo]')].filter(b => !b.hidden).map(b => b.dataset.promo);
+  check('promotion modal only offers pieces in the pool (rook)', JSON.stringify(visiblePromos) === '["rook"]', JSON.stringify(visiblePromos));
+  doc.querySelector('[data-promo="rook"]').click();
+  await sleep(500);
+  check('promotion modal closes after choosing', $('promoModal').hidden);
+  const promotedEl = [...doc.querySelectorAll('.piece')].find(e => Math.abs(parseFloat(e.style.top) - 5) < 0.2 && Math.abs(parseFloat(e.style.left) - 5.56) < 0.2);
+  check('pawn promoted to rook glyph', !!promotedEl && promotedEl.textContent === '♖', promotedEl && promotedEl.textContent);
+  check('pool chip back to empty after promotion', $('promoPool').textContent.includes('trống'), $('promoPool').textContent);
+
+  // Thắng Du kích: thông báo đúng reason + dòng vinh danh + biên bản ghi luật và mã lý do
+  const guerrillaState = {
+    armies: { top: 'chess', bottom: 'xiangqi' },
+    pieces: [CP('k2', 'chess', 'king', 'top', 4, 0), CP('g2', 'xiangqi', 'general', 'bottom', 3, 9),
+      CP('c2', 'xiangqi', 'chariot', 'bottom', 0, 5)],
+    turn: 'bottom',
+    rules: { ...window.Engine.DEFAULT_RULES, guerrillaChecks: 1 },
+    counters: freshCounters(), posHistory: [], moveFlags: [], capturedChess: [],
+  };
+  window.applyRemoteState(craftState(JSON.parse(JSON.stringify(guerrillaState))), null);
+  await sleep(100);
+  clickBoard(0, 5);
+  await sleep(60);
+  clickBoard(0, 0);
+  await sleep(150);
+  check('guerrilla win: end modal shows', !$('endModal').hidden);
+  check('end text names the Du kich rule', $('endText').textContent.includes('Du kích'), $('endText').textContent);
+  check('end text has the underdog honor line', $('endText').textContent.includes('giáo mác thắng súng đạn'), $('endText').textContent);
+  check('guerrilla counter shows 1/1 after win', $('guerrillaCounter').textContent.includes('1/1'), $('guerrillaCounter').textContent);
+  Object.defineProperty(window.navigator, 'clipboard', {
+    configurable: true,
+    value: { writeText: t => { window.__copied = t; return Promise.resolve(); } },
+  });
+  $('copyRecordBtn').click();
+  await sleep(120);
+  check('move record lists active rules', (window.__copied || '').includes('Luật bổ trợ') && (window.__copied || '').includes('Du kích'), window.__copied);
+  check('move record includes the end reason code', (window.__copied || '').includes('guerrilla'), window.__copied);
+
+  // Khách online: điều khiển luật bị khóa, chỉ xem
+  setRadio('mode', 'online');
+  window.applyRemoteState(craftState(JSON.parse(JSON.stringify(guerrillaState))), 'bottom');
+  await sleep(100);
+  const ruleInputs = [...doc.querySelectorAll('#rulesBox input, #rulesBox select')];
+  check('guest: all rule controls disabled', ruleInputs.length > 0 && ruleInputs.every(el => el.disabled));
+  check('guest: read-only note visible', !$('rulesGuestNote').hidden);
+  check('guest: rules line still shows host rules', $('rulesLine').textContent.includes('Du kích'), $('rulesLine').textContent);
+  setRadio('mode', 'hotseat');
+
   console.log(failures === 0 ? '\nALL UI TESTS PASSED' : `\n${failures} UI TEST(S) FAILED`);
   window.close();
   process.exit(failures ? 1 : 0);

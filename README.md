@@ -1,8 +1,10 @@
 # ⚔️ Cờ Vua vs Cờ Tướng — Đông đấu Tây
 
 Một game cờ lai: **một người cầm bộ cờ tướng, một người cầm bộ cờ vua, đấu nhau trên cùng một bàn cờ.**
-Bản MVP v0.1.1 — tung ra để lấy ý kiến người chơi về cân bằng và luật lai.
+Bản v0.2.0 — tung ra để lấy ý kiến người chơi về cân bằng và luật lai.
 
+> **Mới ở v0.2.0 — Luật bổ trợ phe Tướng:** vì thực chiến cho thấy phe Tướng yếu thế hơn, game có thêm bộ luật bổ trợ tùy chọn (mặc định **tắt** — chọn preset "Đề xuất" hoặc "Tùy chỉnh" ở màn hình thiết lập). Các luật này **không đổi nước đi, số quân hay vị trí xếp quân** của hai bộ cờ, chỉ thêm điều kiện thắng/hòa và giới hạn phong cấp. Chi tiết ở mục riêng phía dưới.
+>
 > **Mới ở v0.1.1:** quân cờ **trượt đi mượt mà** khi di chuyển thay vì nhảy tới vị trí mới (áp dụng cho cả nước của đối thủ / máy / online), ô xuất phát và ô đích của nước vừa đi nhấp nháy làm nổi bật, và dưới bàn cờ luôn hiện dòng "Nước vừa đi: …" để khỏi bỏ lỡ nước của đối thủ. Người chơi bật chế độ giảm chuyển động (prefers-reduced-motion) sẽ tự động tắt hiệu ứng trượt.
 
 ## Chơi ngay
@@ -24,6 +26,34 @@ Trước ván, mỗi người chơi chọn một kiểu bàn: **ô vuông** (nh�
 Chọn giống nhau thì dùng kiểu đó; khác nhau thì hệ thống **tung đồng xu random** quyết định.
 
 > Vì sao random công bằng? Vì cả hai kiểu bàn dùng **chung một bộ luật và một lưới tọa độ 9×10** — bàn chỉ là "skin" hiển thị, không đổi luật, nên không bên nào lợi hơn.
+
+## Luật bổ trợ phe Tướng (v0.2.0)
+
+Thực chiến cho thấy phe Tướng yếu thế hơn phe Vua (quân bảo vệ Tướng bị bó trong cung/nửa bàn, hàng chốt mỏng hơn hàng tốt…). Bộ luật bổ trợ này giúp phe Tướng có thêm đường thắng — với nguyên tắc cứng: **không thay đổi nước đi của bất kỳ quân nào, không thêm/bớt quân, không đổi vị trí xếp quân ban đầu**; chỉ thêm luật về điều kiện thắng/hòa, phong cấp, chiếu dai và hết nước.
+
+- Mọi luật **mặc định tắt**. Tắt hết thì game chạy y hệt bản gốc.
+- Chỉ áp dụng ở **trận lai** (Tướng đấu Vua). Trận gương (cùng loại quân hai bên) tắt hoàn toàn.
+- Chọn ở màn hình thiết lập: preset **Bản gốc** (tắt hết), preset **Đề xuất** (Du kích N=3 + Hậu cần có hạn + Giữ thành), hoặc **Tùy chỉnh** từng luật. Chế độ online: chủ phòng chọn luật, khách vào phòng chỉ xem.
+
+### Từng luật
+
+1. **⚔️ Du kích** (`guerrillaChecks = N`): sau mỗi nước đi của bên Tướng, nếu Vua đang bị chiếu (kể cả chiếu phi tướng, chiếu đôi cũng chỉ tính 1 lần) thì bộ đếm tăng 1. Đủ N lần, bên Tướng **thắng ngay** mà không cần chiếu bí. Trên giao diện hiện "Du kích: x/N lần chiếu".
+2. **🏯 Giữ thành** (`defenderWinsOnDraw`): mọi kết quả **hòa** của ván (lặp thế 3 lần, hòa hết nước theo luật Chính nghĩa) đều chuyển thành **bên Tướng thắng**. Lưu ý: bên Tướng hết nước mà luật Chính nghĩa (2) không bật thì vẫn là thua, không phải hòa để chuyển.
+3. **⏳ Trường kỳ kháng chiến** (`moveLimit = X`): đếm số nước bên Vua đã đi. Bên Vua đi đủ X nước mà chưa thắng được thì **bên Tướng thắng**. Giao diện hiện số nước còn lại.
+4. **🎒 Hậu cần có hạn** (`promoteOnlyCaptured`): bên Tướng ăn được quân cờ vua nào thuộc nhóm phong cấp (Hậu/Xe/Tượng/Mã) thì quân đó vào "kho". Tốt vua chỉ phong cấp thành quân **có trong kho**, và mỗi lần phong tiêu hao 1 quân khỏi kho (quân phong cấp bị ăn sau đó lại quay về kho theo loại). Kho trống thì Tốt **không đi/ăn vào hàng cuối được** (kiểu Grand Chess). Cách đi của Tốt không đổi.
+5. **⚖️ Chính nghĩa — chiếu dai** (`chessNoPerpetualCheck`): khi thế cờ lặp lại 3 lần, nếu trong **vòng lặp cuối** (từ lần xuất hiện thứ hai tới thứ ba) mọi nước của bên Vua đều là nước chiếu thì **bên Vua thua** vì chiếu dai. Bên Tướng chiếu dai thì hợp lệ — chỉ bên Vua bị xử.
+6. **⚖️ Chính nghĩa — hết nước hòa** (`xiangqiStalemateDraw`): bên Tướng hết nước đi hợp lệ mà **không** bị chiếu thì ván **hòa** thay vì thua. Bên Vua hết nước vẫn thua như thường.
+
+### Thứ tự ưu tiên khi xác định kết quả ván
+
+Khi nhiều điều kiện cùng xảy ra ở một nước đi, engine xét theo thứ tự cố định sau (và biên bản/thông báo kết thúc ghi rõ lý do):
+
+1. **Chiếu bí / hết nước** (hết nước của bên Tướng chuyển thành hòa nếu bật Chính nghĩa (2)).
+2. **Du kích** — bên Tướng đủ N lần chiếu thì thắng, ưu tiên hơn cả hòa lặp thế.
+3. **Chiếu dai của bên Vua** (Chính nghĩa (1)) — bên Vua thua, ưu tiên hơn hòa lặp thế.
+4. **Lặp thế 3 lần** — hòa.
+5. **Trường kỳ** — bên Tướng thắng (nhưng nếu nước thứ X của bên Vua chính là nước chiếu bí thì bên Vua thắng theo mục 1).
+6. **Giữ thành** — nếu kết quả cuối cùng là hòa (ở mục 1 hoặc 4) và luật này bật, chuyển thành bên Tướng thắng.
 
 ## Luật lai đã áp dụng
 
@@ -72,7 +102,7 @@ Engine đã được kiểm chứng bằng test tự động, trong đó có: b�
 
 ## Hạn chế đã biết của MVP
 
-- Chưa có: nhập thành, bắt tốt qua đường, luật cấm chiếu dai, đồng hồ, chấp quân, AI mạnh (AI hiện tại chỉ đánh giá 1 nước).
+- Chưa có: nhập thành, bắt tốt qua đường, đồng hồ, chấp quân, AI mạnh (AI hiện tại chỉ đánh giá 1 nước). Luật cấm chiếu dai đã có dưới dạng luật bổ trợ tùy chọn "Chính nghĩa" — nhưng chỉ xử bên Vua, và chỉ trong trận lai.
 - Online Beta phụ thuộc dịch vụ môi giới PeerJS công cộng — thỉnh thoảng có thể kết nối chậm; nếu cần ổn định lâu dài nên dựng server riêng.
 - Bàn không tự xoay theo lượt (hai người ngồi đối diện dùng chung một hướng nhìn).
 
