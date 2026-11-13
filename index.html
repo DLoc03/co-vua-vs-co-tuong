@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cờ Vua vs Cờ Tướng — Đông đấu Tây</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site-header">
+  <h1>⚔️ Cờ Vua <span class="vs">vs</span> Cờ Tướng</h1>
+  <p class="tagline">Một bàn cờ, hai nền văn minh. Bên cầm bộ cờ tướng đấu với bên cầm bộ cờ vua.</p>
+  <span class="version">Bản MVP v0.1.1 — đang lấy ý kiến người chơi</span>
+</header>
+
+<main>
+  <!-- ============ MÀN HÌNH THIẾT LẬP ============ -->
+  <section id="setupScreen" class="panel setup">
+    <h2>Thiết lập ván đấu</h2>
+
+    <div class="field">
+      <label class="field-label">Chế độ chơi</label>
+      <div class="radio-cards" id="modeCards">
+        <label class="radio-card">
+          <input type="radio" name="mode" value="hotseat" checked>
+          <strong>👥 2 người cùng máy</strong>
+          <small>Đối kháng offline trên cùng một thiết bị</small>
+        </label>
+        <label class="radio-card">
+          <input type="radio" name="mode" value="ai">
+          <strong>🤖 Luyện tập với máy</strong>
+          <small>Chọn bất cứ bộ quân nào cho bạn và cho máy để làm quen cơ chế</small>
+        </label>
+        <label class="radio-card">
+          <input type="radio" name="mode" value="online">
+          <strong>🌐 Online (Beta)</strong>
+          <small>Tạo phòng bằng mã, gửi cho bạn bè ở máy khác cùng vào đấu</small>
+        </label>
+      </div>
+    </div>
+
+    <div id="matchupFields" class="grid-2">
+      <div class="field">
+        <label class="field-label" for="topArmy">Quân bên TRÊN</label>
+        <select id="topArmy">
+          <option value="xiangqi" selected>Cờ tướng (đỏ)</option>
+          <option value="chess">Cờ vua</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label" for="bottomArmy">Quân bên DƯỚI</label>
+        <select id="bottomArmy">
+          <option value="chess" selected>Cờ vua</option>
+          <option value="xiangqi">Cờ tướng</option>
+        </select>
+      </div>
+      <p class="hint" id="matchupHint">Đối kháng lai kinh điển: Tướng ở trên, Vua ở dưới. Ở chế độ luyện tập, bạn cầm quân bên dưới, máy cầm quân bên trên — cứ chọn trùng loại (Vua vs Vua, Tướng vs Tướng) nếu muốn tập riêng từng hệ.</p>
+    </div>
+
+    <div id="skinVoteFields" class="grid-2">
+      <div class="field">
+        <label class="field-label" for="skinP1">Người chơi 1 chọn kiểu bàn</label>
+        <select id="skinP1">
+          <option value="squares" selected>Ô vuông (như cờ vua)</option>
+          <option value="lines">Vạch kẻ / giao điểm (như cờ tướng)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label" for="skinP2">Người chơi 2 chọn kiểu bàn</label>
+        <select id="skinP2">
+          <option value="lines" selected>Vạch kẻ / giao điểm (như cờ tướng)</option>
+          <option value="squares">Ô vuông (như cờ vua)</option>
+        </select>
+      </div>
+      <p class="hint">Hai người chọn giống nhau thì dùng kiểu đó. Chọn khác nhau thì hệ thống <strong>random tung đồng xu</strong> quyết định. Yên tâm: luật chơi thống nhất cho cả hai kiểu bàn, bàn chỉ khác hình thức — random không làm ai lợi hơn.</p>
+    </div>
+
+    <div id="onlineFields" class="online-box" hidden>
+      <div class="grid-2">
+        <div class="field">
+          <label class="field-label" for="hostArmy">Chủ phòng cầm quân</label>
+          <select id="hostArmy">
+            <option value="xiangqi" selected>Cờ tướng (bên trên)</option>
+            <option value="chess">Cờ vua (bên dưới)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label" for="mySkinOnline">Bạn chọn kiểu bàn</label>
+          <select id="mySkinOnline">
+            <option value="squares" selected>Ô vuông</option>
+            <option value="lines">Vạch kẻ / giao điểm</option>
+          </select>
+        </div>
+      </div>
+      <div class="online-actions">
+        <button id="createRoomBtn" class="btn primary" type="button">Tạo phòng mới</button>
+        <span class="or">hoặc</span>
+        <input id="roomCodeInput" type="text" placeholder="Nhập mã phòng" maxlength="5" class="room-input">
+        <button id="joinRoomBtn" class="btn" type="button">Vào phòng</button>
+      </div>
+      <p class="hint" id="onlineStatus">Online dùng kết nối ngang hàng (WebRTC qua PeerJS) — cần có mạng. Chủ phòng tạo phòng rồi gửi mã cho người còn lại.</p>
+    </div>
+
+    <button id="startBtn" class="btn primary big" type="button">▶ Bắt đầu ván</button>
+
+    <details class="rules">
+      <summary>📜 Luật đã áp dụng trong bản này (bấm để xem)</summary>
+      <ul>
+        <li>Bàn thống nhất 9 cột × 10 hàng. Bên cờ tướng đi trước. Hàng cuối cờ vua ở cột 1–8, Vua đứng cột 5 đối đầu Tướng; riêng cánh vua đổi chỗ Mã–Xe (kiểu Chess960) để Pháo không ăn Xe miễn phí ngay nước đầu — cả hai Pháo chỉ ăn được Mã có Xe bảo vệ.</li>
+        <li>Phi tướng biến thể B: Tướng và Vua đối mặt trên cột trống chỉ tính là <em>chiếu từ xa</em>, Tướng không bay sang ăn Vua.</li>
+        <li>Hết nước đi hợp lệ = <strong>thua</strong> (kể cả khi không bị chiếu). Lặp lại thế cờ 3 lần = hòa. Chưa áp dụng luật cấm chiếu dai.</li>
+        <li>Không nhập thành, không bắt tốt qua đường trong bản MVP. Tốt vua được phong cấp (Hậu/Xe/Tượng/Mã vua). Chốt tướng lên hàng cuối chỉ đi ngang.</li>
+        <li>Chiếu được tính đúng luật từng quân: Pháo cần ngòi, Mã tướng bị cản chân, Tượng tướng bị cản mắt tượng và không qua sông, Chốt qua sông mới đi ngang… Không được tự đi vào chiếu; ván kết thúc ở chiếu bí / hết nước, không ăn thật Vua/Tướng.</li>
+        <li>Chưa cân bằng nerf/boost quân nào — giữ nguyên hai bộ quân để người chơi test và góp ý.</li>
+      </ul>
+    </details>
+  </section>
+
+  <!-- ============ MÀN HÌNH CHƠI ============ -->
+  <section id="gameScreen" class="game-layout" hidden>
+    <div class="board-column">
+      <div id="turnBanner" class="turn-banner">—</div>
+      <div id="board" class="board skin-squares" role="application" aria-label="Bàn cờ">
+        <div id="boardBg" class="board-bg"></div>
+        <div id="hlLayer" class="layer"></div>
+        <div id="pieceLayer" class="layer"></div>
+      </div>
+      <p class="board-note" id="boardNote"></p>
+    </div>
+
+    <aside class="side-panel panel">
+      <div class="captured-block">
+        <h3>Quân đã ăn</h3>
+        <div class="captured-row"><span class="side-tag top-tag">Trên</span><span id="capturedByTop" class="captured-list">—</span></div>
+        <div class="captured-row"><span class="side-tag bottom-tag">Dưới</span><span id="capturedByBottom" class="captured-list">—</span></div>
+      </div>
+
+      <div class="actions">
+        <button id="undoBtn" class="btn" type="button">↩️ Đi lại</button>
+        <button id="resignBtn" class="btn danger" type="button">🏳️ Xin thua</button>
+        <button id="newGameBtn" class="btn" type="button">🔄 Ván mới / Về thiết lập</button>
+      </div>
+
+      <h3>Biên bản</h3>
+      <ol id="moveList" class="move-list"></ol>
+
+      <div class="feedback-box">
+        <h3>💬 Góp ý cân bằng</h3>
+        <p>Bản này tung ra để lấy ý kiến người chơi. Chơi xong, hãy sao chép biên bản ván đấu và gửi kèm nhận xét của bạn (quân nào quá mạnh/yếu, luật nào khó hiểu…) lên trang góp ý của dự án.</p>
+        <button id="copyRecordBtn" class="btn" type="button">📋 Sao chép biên bản để góp ý</button>
+        <a id="feedbackLink" class="btn link-btn" href="#" target="_blank" rel="noopener">Mở trang góp ý (GitHub Issues)</a>
+        <p class="hint" id="copyStatus"></p>
+      </div>
+    </aside>
+  </section>
+</main>
+
+<!-- Modal tung đồng xu -->
+<div id="coinModal" class="modal" hidden>
+  <div class="modal-box">
+    <div class="coin" id="coinEl">🪙</div>
+    <p id="coinText">Hai người chọn hai kiểu bàn khác nhau — tung đồng xu quyết định…</p>
+  </div>
+</div>
+
+<!-- Modal phong cấp -->
+<div id="promoModal" class="modal" hidden>
+  <div class="modal-box">
+    <p><strong>Phong cấp cho Tốt vua — chọn quân:</strong></p>
+    <div class="promo-choices">
+      <button type="button" data-promo="queen">♕<small>Hậu</small></button>
+      <button type="button" data-promo="rook">♖<small>Xe</small></button>
+      <button type="button" data-promo="bishop">♗<small>Tượng</small></button>
+      <button type="button" data-promo="knight">♘<small>Mã</small></button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal kết thúc -->
+<div id="endModal" class="modal" hidden>
+  <div class="modal-box">
+    <h2 id="endTitle">Kết thúc</h2>
+    <p id="endText"></p>
+    <button id="endSetupBtn" class="btn primary" type="button">Về màn hình thiết lập</button>
+    <button id="endWatchBtn" class="btn" type="button">Xem lại bàn cờ</button>
+  </div>
+</div>
+
+<footer>
+  <p>Cờ Vua vs Cờ Tướng — dự án game mở, bản MVP v0.1.1. Chạy offline hoàn toàn (trừ chế độ Online Beta). Đưa lên GitHub Pages: chỉ cần đẩy toàn bộ thư mục này lên repo và bật Pages.</p>
+</footer>
+
+<script src="game.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
