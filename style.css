@@ -440,6 +440,23 @@ footer { color: var(--chu-phu); }
   color: color-mix(in srgb, var(--do-son) 45%, var(--chu));
 }
 
+/* ================= BẢN 0.2.4: KHE SÔNG THẬT — SKIN Ô VUÔNG ================= */
+/* Hai nửa bàn tách hẳn nhau bởi khe sông nửa ô (trong khe có dải sông + chữ), thay cho vạch vàng 2px cũ. */
+.board.skin-squares { aspect-ratio: 6 / 7; }
+.board.skin-squares .sq-gap { fill: var(--song); }
+.board.skin-squares .sq-gap-edge { stroke: var(--vang); stroke-width: 3; }
+.board.skin-squares .sq-gap-text {
+  fill: var(--chu-song);
+  font-family: "Playfair Display", Georgia, serif; font-weight: 700;
+}
+.board.skin-squares #riverBand { display: none; }
+@media (max-width: 720px) {
+  .board.skin-squares {
+    width: min(100%, max(230px, calc((100vh - 328px) * 0.857)));
+    width: min(100%, max(230px, calc((100dvh - 328px) * 0.857)));
+  }
+}
+
 /* ================= MOBILE (v0.2.1) =================
    Mục tiêu: trên điện thoại, bàn cờ vừa trọn chiều cao màn hình (không phải
    cuộn mới thấy hết bàn), mọi nút bấm đủ lớn cho ngón tay, các form xếp 1 cột. */

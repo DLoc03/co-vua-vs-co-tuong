@@ -1,5 +1,22 @@
 # CHANGELOG — Cờ Vua vs Cờ Tướng
 
+## v0.2.4 — Khe sông thật cho skin ô vuông (LỖI 2) + chọn phe theo người chơi, quân của mình luôn ở dưới (Đợt B)
+
+**Đợt B — chọn phe & hướng nhìn:**
+
+- Màn thiết lập đổi hẳn cách chọn quân: **"Bạn cầm"** (Cờ Tướng / Cờ Vua) và **"Đối thủ"** (Người cùng máy / Máy / Online). Đối thủ mặc định cầm bộ còn lại; riêng chế độ luyện tập với máy có thêm mục **"Đối thủ cầm"** để đấu trận gương (Tướng–Tướng, Vua–Vua). Online: chủ phòng chọn "Bạn cầm", khách tự động nhận bộ còn lại.
+- **Quân của người đang nhìn luôn ở phía dưới**: luyện với máy thì người ở dưới, máy ở trên; online thì mỗi máy tự lật bàn theo hướng của mình (chủ phòng và khách nhìn hai hướng ngược nhau); 2 người cùng máy thì người chọn "Bạn cầm" (P1) ở dưới, kèm tùy chọn **"Tự xoay bàn theo lượt"** (mặc định tắt) để bàn tự lật cho người sắp đi. Trận gương: P1 ở dưới.
+- Lật bàn thuần túy là phép biến đổi hiển thị (xoay 180°: nền bàn, cung, khe sông, quân, ô đánh dấu, chấm gợi ý, animation trượt và tọa độ click/chạm đều đi qua cùng một phép đổi) — tọa độ engine, luật chơi và biên bản ván đấu giữ nguyên hệ quy chiếu cũ, nên biên bản giống hệt nhau dù nhìn từ hướng nào. Bên Tướng vẫn luôn đi trước.
+- Thẻ người chơi đi theo hướng nhìn: thẻ **"Bạn"** luôn ở dưới bàn, đối thủ ở trên; tên thẻ ghi rõ vai trò và phe ("Bạn — Phe Tướng", "Đối thủ — Phe Vua", online là "Đối thủ (online)", luyện tập là "Máy"). Bộ đếm luật bổ trợ và nhãn "Đang bị chiếu!" đi theo đúng thẻ của phe tương ứng.
+- Gói tin online có thêm trường phiên bản: nếu hai máy lệch phiên bản, cả hai đều nhận thông báo **"Đối thủ đang dùng phiên bản khác, hãy tải lại trang"** thay vì âm thầm lệch bàn.
+- Mọi chữ trong ván (thanh lượt đi, thông báo kết thúc, biên bản) gọi phe bằng **tên tuyệt đối** — "Lượt đi: Phe Tướng", "Phe Vua THẮNG" (trận gương ghi thêm (P1)/(P2)) — bỏ hẳn cách ghi "(bên trên)/(bên dưới)", nên biên bản hai máy khớp nhau tuyệt đối dù bàn lật ngược nhau. Mặc định "Bạn cầm" là **Cờ Tướng**.
+- Sửa thêm một lỗi tiềm ẩn từ trước: nước đi của máy đã lên lịch có thể "rò" sang ván mới nếu người chơi mở ván khác trong vòng 420ms — timer nay kiểm tra lại đúng ván trước khi đi.
+
+**LỖI 2 — khe sông thật:**
+
+- Skin **ô vuông** giờ có **khe sông thật**: hai nửa bàn tách hẳn nhau bởi một khoảng trống cao nửa ô nằm giữa hàng 5 và hàng 6, thay cho vạch vàng 2px vẽ đè lên mép ô ở bản trước. Trong khe là dải sông sơn mài viền vàng kèm chữ "SỞ HÀ · HÁN GIỚI" — đúng tinh thần Sở hà Hán giới.
+- Chỉ thay đổi hình thức và hình học hiển thị của skin ô vuông: vị trí quân, vùng sáng nước đi và thao tác chạm/click được căn lại theo khe sông (bấm đúng vào khe thì bỏ qua, không chọn nhầm hàng kề); luật chơi và engine không đổi. Skin vạch kẻ giữ nguyên như cũ.
+
 ## v0.2.3 — Sửa hành vi chế độ Online
 
 Đưa trải nghiệm online về đúng chuẩn game cờ online thông thường (không đổi luật, không đổi giao diện sơn mài):

@@ -42,34 +42,35 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await sleep(2400);
   check('game screen shown after coin flip', !$('gameScreen').hidden);
   check('32 pieces on board', doc.querySelectorAll('.piece').length === 32, doc.querySelectorAll('.piece').length);
-  check('xiangqi tokens on top', doc.querySelectorAll('.piece.xiangqi.side-top').length === 16);
-  check('chess pieces at bottom', doc.querySelectorAll('.piece.chess.side-bottom').length === 16);
-  check('banner: xiangqi turn first', $('turnBanner').textContent.includes('Cờ tướng'), $('turnBanner').textContent);
+  check('xiangqi tokens at bottom (P1 army)', doc.querySelectorAll('.piece.xiangqi.side-bottom').length === 16);
+  check('chess pieces on top', doc.querySelectorAll('.piece.chess.side-top').length === 16);
+  check('banner: xiangqi turn first', $('turnBanner').textContent.includes('Phe Tướng'), $('turnBanner').textContent);
 
-  // --- Đi thử một nước Chốt: chọn chốt ở (0,3) rồi đi tới (0,4) ---
-  const soldierEl = [...doc.querySelectorAll('.piece')].find(e => Math.abs(parseFloat(e.style.top) - 35) < 0.2 && Math.abs(parseFloat(e.style.left) - 5.56) < 0.2);
+  // --- Đi thử một nước Chốt: chọn chốt ở (0,6) rồi đi tới (0,5) ---
+  const soldierPos = window.centerPct(0, 6);
+  const soldierEl = [...doc.querySelectorAll('.piece')].find(e => Math.abs(parseFloat(e.style.top) - soldierPos.top) < 0.2 && Math.abs(parseFloat(e.style.left) - soldierPos.left) < 0.2);
   check('found soldier element before move', !!soldierEl);
-  clickBoard(0, 3);
+  clickBoard(0, 6);
   await sleep(60);
   check('legal move dots appear after selecting soldier', doc.querySelectorAll('.hl.move, .hl.capture').length >= 1,
     doc.querySelectorAll('.hl').length);
-  clickBoard(0, 4);
+  clickBoard(0, 5);
   await sleep(60);
   check('sliding: same DOM element for the moved piece (persistent element)', !!soldierEl && soldierEl.isConnected);
-  check('sliding: element position updated to destination (top 45%)', !!soldierEl && Math.abs(parseFloat(soldierEl.style.top) - 45) < 0.2,
+  check('sliding: element position updated to destination', !!soldierEl && Math.abs(parseFloat(soldierEl.style.top) - window.centerPct(0, 5).top) < 0.2,
     soldierEl && soldierEl.style.top);
   const cssText = require('fs').readFileSync(require('path').join(__dirname, '..', 'style.css'), 'utf8');
   check('sliding: stylesheet animates piece left/top', /\.piece\s*\{[^}]*transition:\s*left \.38s/.test(cssText));
   check('board note announces the last move', $('boardNote').textContent.includes('Nước vừa đi'), $('boardNote').textContent);
   check('move list has 1 entry', $('moveList').children.length === 1, $('moveList').children.length);
-  check('banner switches to chess side', $('turnBanner').textContent.includes('Cờ vua'), $('turnBanner').textContent);
+  check('banner switches to chess side', $('turnBanner').textContent.includes('Phe Vua'), $('turnBanner').textContent);
   check('still 32 pieces (no capture yet)', doc.querySelectorAll('.piece').length === 32);
 
   // --- Đi lại (undo) ---
   $('undoBtn').click();
   await sleep(60);
   check('undo empties move list', $('moveList').children.length === 0);
-  check('banner back to xiangqi after undo', $('turnBanner').textContent.includes('Cờ tướng'));
+  check('banner back to xiangqi after undo', $('turnBanner').textContent.includes('Phe Tướng'));
 
   // --- Ván 2: chế độ AI, cả hai chọn bàn ô vuông ---
   $('newGameBtn').click();
@@ -78,8 +79,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   aiRadio.checked = true;
   aiRadio.dispatchEvent(new window.Event('change', { bubbles: true }));
   $('skinP1').value = 'squares'; $('skinP2').value = 'squares';
+  $('myArmy').value = 'chess'; // người cầm Vua, máy cầm Tướng đi trước
   $('startBtn').click();
-  await sleep(1200); // máy (bên trên = cờ tướng) tự đi sau ~420ms
+  await sleep(1200); // máy (phe Tướng) tự đi sau ~420ms
   check('AI mode: AI made the first move', $('moveList').children.length === 1, $('moveList').children.length);
   check('AI mode: banner now waits for player (Bạn)', $('turnBanner').textContent.includes('Bạn'), $('turnBanner').textContent);
 
@@ -107,10 +109,13 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   $('newGameBtn').click();
   await sleep(60);
   check('rules box visible in hybrid matchup', !$('rulesBox').hidden);
-  $('topArmy').value = 'chess'; $('topArmy').dispatchEvent(new window.Event('change', { bubbles: true }));
+  setRadio('mode', 'ai');
+  $('myArmy').value = 'chess'; $('myArmy').dispatchEvent(new window.Event('change', { bubbles: true }));
+  $('oppArmy').value = 'chess'; $('oppArmy').dispatchEvent(new window.Event('change', { bubbles: true }));
   check('rules box hidden in mirror matchup', $('rulesBox').hidden);
-  $('topArmy').value = 'xiangqi'; $('topArmy').dispatchEvent(new window.Event('change', { bubbles: true }));
+  $('oppArmy').value = 'auto'; $('oppArmy').dispatchEvent(new window.Event('change', { bubbles: true }));
   check('rules box back when hybrid again', !$('rulesBox').hidden);
+  setRadio('mode', 'hotseat');
 
   // --- Preset Đề xuất: thanh luật + bộ đếm hiện trong ván ---
   setRadio('rulesPreset', 'suggested');
@@ -163,7 +168,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   doc.querySelector('[data-promo="rook"]').click();
   await sleep(500);
   check('promotion modal closes after choosing', $('promoModal').hidden);
-  const promotedEl = [...doc.querySelectorAll('.piece')].find(e => Math.abs(parseFloat(e.style.top) - 5) < 0.2 && Math.abs(parseFloat(e.style.left) - 5.56) < 0.2);
+  const promotedPos = window.centerPct(0, 0);
+  const promotedEl = [...doc.querySelectorAll('.piece')].find(e => Math.abs(parseFloat(e.style.top) - promotedPos.top) < 0.2 && Math.abs(parseFloat(e.style.left) - promotedPos.left) < 0.2);
   check('pawn promoted to rook glyph (with text variation selector)', !!promotedEl && promotedEl.textContent === '♖\uFE0E', promotedEl && JSON.stringify(promotedEl.textContent));
   check('pool chip back to empty after promotion', $('promoPool').textContent.includes('trống'), $('promoPool').textContent);
 
@@ -222,7 +228,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   setRadio('rulesPreset', 'suggested');
   $('startBtn').click();
   await sleep(300);
-  check('player cards rendered: Tuong top / Vua bottom', $('pcNameTop').textContent === 'Phe Tướng' && $('pcNameBottom').textContent === 'Phe Vua',
+  check('player cards: Ban (Vua) at bottom / Doi thu (Tuong) at top', $('pcNameBottom').textContent === 'Bạn — Phe Vua' && $('pcNameTop').textContent === 'Đối thủ — Phe Tướng',
     $('pcNameTop').textContent + '/' + $('pcNameBottom').textContent);
   check('card subtitles follow the story', $('pcSubTop').textContent.includes('Giáo mác') && $('pcSubBottom').textContent.includes('Súng đạn'));
   check('avatars show royal glyphs', $('avatarTop').textContent === '帥' && $('avatarBottom').textContent === '♔\uFE0E',
@@ -312,6 +318,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
       destroy() {}
     }
     window.Peer = FakePeer;
+    // Click theo tọa độ ENGINE (đã tính cả lật bàn qua centerPct)
+    const clickCanonical = (x, y) => {
+      const c = window.centerPct(x, y);
+      $('board').dispatchEvent(new window.MouseEvent('click', { bubbles: true, clientX: c.left / 100 * 900, clientY: c.top / 100 * 1000 }));
+    };
     setRadio('mode', 'online');
     $('hostArmy').value = 'xiangqi';
     $('mySkinOnline').value = 'squares';
@@ -324,13 +335,23 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     const conn = new FakeConn();
     peer.emit('connection', conn);
     conn.emit('open');
-    conn.emit('data', { type: 'hello', skinPref: 'squares' });
+    conn.emit('data', { type: 'hello', skinPref: 'squares', version: 'v0.0.0-old' });
+    await sleep(50);
+    check('host: outdated guest version is reported, game not started',
+      $('onlineStatus').textContent.includes('phiên bản khác') && window.eval('G.online.started') === false,
+      $('onlineStatus').textContent);
+    check('host: outdated guest is told via versionMismatch', conn.sent.some(m => m.type === 'versionMismatch'));
+    conn.emit('data', { type: 'hello', skinPref: 'squares', version: window.eval('VERSION') });
     await sleep(80);
     check('host: game started in the room', !$('gameScreen').hidden && window.eval('G.online.started') === true);
     check('host: initial state broadcast to guest', conn.sent.some(m => m.type === 'state'));
-    clickBoard(0, 3);
+    check('host view: host (Tuong/top) flipped to bottom', window.eval('G.viewBottom') === 'top' && window.centerPct(4, 0).top > 50);
+    check('host view: own card at bottom, online rival at top',
+      $('pcNameBottom').textContent === 'Bạn — Phe Tướng' && $('pcNameTop').textContent === 'Đối thủ (online) — Phe Vua',
+      $('pcNameBottom').textContent + '/' + $('pcNameTop').textContent);
+    clickCanonical(0, 3);
     await sleep(50);
-    clickBoard(0, 4);
+    clickCanonical(0, 4);
     await sleep(80);
     check('host: first move applies immediately', window.eval('G.history.length') === 1 && window.eval('G.board.turn') === 'bottom',
       window.eval('JSON.stringify(G.history.length)'));
@@ -339,7 +360,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     conn.emit('data', { type: 'move', move: { fx: 0, fy: 8, tx: 0, ty: 7 } });
     await sleep(80);
     check('host: guest move applied, turn returns', window.eval('G.history.length') === 2 && window.eval('G.board.turn') === 'top');
-    conn.emit('data', { type: 'hello', skinPref: 'squares' });
+    conn.emit('data', { type: 'hello', skinPref: 'squares', version: window.eval('VERSION') });
     await sleep(50);
     check('host: duplicate hello does not reset the running game', window.eval('G.history.length') === 2);
     check('host: isHost still true after guest reconnect-hello', window.eval('G.online.isHost') === true);
@@ -351,14 +372,171 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     check('host: new-game button rematches inside the same room', window.eval('G.history.length') === 0 && window.eval('G.over') === false && !$('gameScreen').hidden);
     check('host: rematch state broadcast to guest', conn.sent.filter(m => m.type === 'state').length >= 3);
     check('host: isHost still true after rematch', window.eval('G.online.isHost') === true);
-    clickBoard(0, 3);
+    check('host: rematch keeps the flipped view', window.eval('G.viewBottom') === 'top');
+    clickCanonical(0, 3);
     await sleep(50);
-    clickBoard(0, 4);
+    clickCanonical(0, 4);
     await sleep(80);
     check('host: moves immediately in the rematch game', window.eval('G.history.length') === 1);
     check('host: isHost true at the end of the lifecycle', window.eval('G.online.isHost') === true);
     window.eval("G.mode = 'hotseat';");
     setRadio('mode', 'hotseat');
+  }
+
+  // --- v0.2.4 LỖI 2: khe sông thật ở skin ô vuông ---
+  {
+    const svgSq = window.eval("boardSvg('squares')");
+    check('squares svg has a real river gap (viewBox 900x1050 + gap)', svgSq.includes('viewBox="0 0 900 1050"') && svgSq.includes('sq-gap'));
+    check('river gap carries the river name', svgSq.includes('SỞ HÀ · HÁN GIỚI'));
+    check('lines skin svg unchanged', window.eval("boardSvg('lines')").includes('viewBox="0 0 900 1000"'));
+    window.eval("G.skin = 'squares'; G.viewBottom = 'bottom';");
+    check('geometry: last row above river sits at 42.86%', Math.abs(window.centerPct(0, 4).top - 42.86) < 0.1, window.centerPct(0, 4).top);
+    check('geometry: first row below river shifted to 57.14%', Math.abs(window.centerPct(0, 5).top - 57.14) < 0.1, window.centerPct(0, 5).top);
+    window.eval("G.skin = 'lines';");
+    check('geometry: lines skin stays uniform (55%)', Math.abs(window.centerPct(0, 5).top - 55) < 0.1);
+    window.eval("G.viewBottom = 'bottom';");
+    const gapState = {
+      armies: { top: 'xiangqi', bottom: 'chess' },
+      pieces: [CP('g4', 'xiangqi', 'general', 'top', 3, 0), CP('k4', 'chess', 'king', 'bottom', 4, 9),
+        CP('s4', 'xiangqi', 'soldier', 'top', 0, 3)],
+      turn: 'top',
+      rules: { ...window.Engine.DEFAULT_RULES },
+      counters: freshCounters(), posHistory: [], moveFlags: [], capturedChess: [],
+    };
+    window.applyRemoteState(craftState(JSON.parse(JSON.stringify(gapState))), null);
+    await sleep(80);
+    $('board').dispatchEvent(new window.MouseEvent('click', { bubbles: true, clientX: 50, clientY: 500 }));
+    await sleep(50);
+    check('clicking into the river gap selects nothing', window.eval('G.selected') === null && doc.querySelectorAll('.hl.move, .hl.capture').length === 0);
+    clickBoard(0, 3);
+    await sleep(60);
+    check('clicking a piece above the river still selects it', window.eval('G.selected') !== null && doc.querySelectorAll('.hl.move, .hl.capture').length >= 1);
+    const css4 = require('fs').readFileSync(path.join(__dirname, '..', 'style.css'), 'utf8');
+    check('css: squares board aspect accounts for the gap', css4.includes('.board.skin-squares { aspect-ratio: 6 / 7; }'));
+    check('css: html river band hidden on squares skin', css4.includes('.board.skin-squares #riverBand { display: none; }'));
+  }
+
+  // --- v0.2.4 ĐỢT B: chọn phe theo người chơi, quân của mình luôn ở dưới ---
+  {
+    const clickCanonical = (x, y) => {
+      const c = window.centerPct(x, y);
+      $('board').dispatchEvent(new window.MouseEvent('click', { bubbles: true, clientX: c.left / 100 * 900, clientY: c.top / 100 * 1000 }));
+    };
+    const flipBoard = {
+      armies: { top: 'xiangqi', bottom: 'chess' },
+      pieces: [CP('g5', 'xiangqi', 'general', 'top', 4, 0), CP('k5', 'chess', 'king', 'bottom', 4, 9),
+        CP('s5', 'xiangqi', 'soldier', 'top', 0, 3)],
+      turn: 'top',
+      rules: { ...window.Engine.DEFAULT_RULES },
+      counters: freshCounters(), posHistory: [], moveFlags: [], capturedChess: [],
+    };
+    const flipState = skin => ({ ...craftState(JSON.parse(JSON.stringify(flipBoard))), skin });
+
+    // (1) Khách online cầm Tướng (bên trên của engine): bàn lật để Tướng ở dưới, click trúng ô engine
+    window.eval("G.mode = 'online';");
+    window.applyRemoteState(flipState('squares'), 'top');
+    await sleep(80);
+    check('flip(squares): viewer army shown at bottom', window.eval('G.viewBottom') === 'top' && window.centerPct(4, 0).top > 50 && window.centerPct(4, 9).top < 50);
+    check('flip(squares): cards follow the view', $('pcNameBottom').textContent === 'Bạn — Phe Tướng' && $('pcNameTop').textContent === 'Đối thủ (online) — Phe Vua');
+    check('flip(squares): background svg rotated 180', $('boardBg').innerHTML.includes('rotate(180'));
+    clickCanonical(0, 3);
+    await sleep(60);
+    check('flip(squares): click selects the engine square', window.eval('JSON.stringify(G.selected)') === JSON.stringify({ x: 0, y: 3 }),
+      window.eval('JSON.stringify(G.selected)'));
+    clickCanonical(0, 4);
+    await sleep(100);
+    check('flip(squares): move lands on the engine square', (window.eval('E.pieceAt(G.board, 0, 4) || {}') || {}).kind === 'soldier' && window.eval('G.history.length') === 1);
+    const recordFlipped = $('moveList').innerHTML;
+
+    // (2) Cùng thế cờ nhìn từ hướng ngược lại: biên bản phải giống hệt
+    window.eval("G.viewBottom = 'bottom';");
+    window.applyRemoteState(flipState('squares'), null);
+    await sleep(80);
+    clickCanonical(0, 3);
+    await sleep(60);
+    clickCanonical(0, 4);
+    await sleep(100);
+    check('record identical from both orientations', $('moveList').innerHTML === recordFlipped);
+    check('unflipped: background svg not rotated', !$('boardBg').innerHTML.includes('rotate(180'));
+
+    // (3) Skin vạch kẻ khi lật: click trúng ô engine, quân trượt tới đúng ô hiển thị
+    window.eval("G.viewBottom = 'top';");
+    window.applyRemoteState(flipState('lines'), null);
+    await sleep(80);
+    clickCanonical(0, 3);
+    await sleep(60);
+    clickCanonical(0, 4);
+    await sleep(150);
+    const movedEl = [...doc.querySelectorAll('.piece')].find(e => Math.abs(parseFloat(e.style.top) - window.centerPct(0, 4).top) < 0.2);
+    check('flip(lines): click + slide land on the engine square', window.eval('G.history.length') === 1 && !!movedEl);
+
+    // (4) Luyện với máy: người cầm Vua ở dưới, máy cầm Tướng đi trước
+    window.eval("G.viewBottom = 'bottom';");
+    setRadio('mode', 'ai');
+    $('myArmy').value = 'chess'; $('myArmy').dispatchEvent(new window.Event('change', { bubbles: true }));
+    $('oppArmy').value = 'auto'; $('oppArmy').dispatchEvent(new window.Event('change', { bubbles: true }));
+    $('skinP1').value = 'squares'; $('skinP2').value = 'squares';
+    $('startBtn').click();
+    await sleep(150);
+    check('ai: human chess at bottom, ai xiangqi on top', window.eval('G.board.armies.bottom') === 'chess' && window.eval('G.board.armies.top') === 'xiangqi');
+    check('ai: cards name the machine', $('pcNameTop').textContent === 'Máy — Phe Tướng' && $('pcNameBottom').textContent === 'Bạn — Phe Vua');
+    await sleep(700);
+    check('ai: xiangqi (machine) moves first', window.eval('G.history.length') === 1 && window.eval('G.board.turn') === 'bottom',
+      window.eval('JSON.stringify(G.history.length)'));
+
+    // (5) Trận gương với máy: cả hai cùng Tướng, quân của người vẫn ở dưới
+    $('newGameBtn').click();
+    await sleep(60);
+    $('myArmy').value = 'xiangqi'; $('myArmy').dispatchEvent(new window.Event('change', { bubbles: true }));
+    $('oppArmy').value = 'xiangqi'; $('oppArmy').dispatchEvent(new window.Event('change', { bubbles: true }));
+    $('startBtn').click();
+    await sleep(200);
+    check('ai mirror: both armies xiangqi, no supplementary rules', window.eval('G.board.armies.bottom') === 'xiangqi' && window.eval('G.board.armies.top') === 'xiangqi' && $('rulesBar').hidden === true);
+    check('ai mirror: human army displayed at bottom', window.centerPct(4, 9).top > 50 && window.eval('G.viewBottom') === 'bottom');
+
+    // (6) Cùng máy + tự xoay bàn theo lượt: bên sắp đi luôn ở dưới
+    $('newGameBtn').click();
+    await sleep(60);
+    setRadio('mode', 'hotseat');
+    $('myArmy').value = 'chess'; $('myArmy').dispatchEvent(new window.Event('change', { bubbles: true }));
+    $('flipPerTurn').checked = true;
+    $('startBtn').click();
+    await sleep(200);
+    check('hotseat auto-flip: side to move (xiangqi) at bottom', window.eval('G.viewBottom') === 'top');
+    clickCanonical(0, 3);
+    await sleep(60);
+    clickCanonical(0, 4);
+    await sleep(120);
+    check('hotseat auto-flip: board rotates after the move', window.eval('G.viewBottom') === 'bottom' && window.eval('G.history.length') === 1);
+    $('flipPerTurn').checked = false;
+    window.eval("G.mode = 'hotseat';");
+  }
+
+  // --- v0.2.4 chỉnh cuối: tên phe tuyệt đối (không "bên trên/dưới") + glyph đứng thẳng khi lật bàn ---
+  {
+    check('side names are absolute (Phe Tuong / Phe Vua), no positional wording',
+      window.eval("sideName('top')").includes('Phe') && !/bên (trên|dưới)/.test(window.eval("sideName('top') + '|' + sideName('bottom')")),
+      window.eval("sideName('top') + '|' + sideName('bottom')"));
+    const visibleTexts = [$('turnBanner').textContent, $('boardNote').textContent, $('moveList').textContent,
+      ...[...doc.querySelectorAll('.piece')].map(e => e.title || '')].join(' ');
+    check('no "ben tren/ben duoi" in any visible game text', !/bên (trên|dưới)/.test(visibleTexts));
+    const uprightState = {
+      armies: { top: 'xiangqi', bottom: 'chess' },
+      pieces: [CP('g6', 'xiangqi', 'general', 'top', 4, 0), CP('k6', 'chess', 'king', 'bottom', 4, 9),
+        CP('c6', 'xiangqi', 'cannon', 'top', 1, 2), CP('q6', 'chess', 'queen', 'bottom', 3, 9)],
+      turn: 'top',
+      rules: { ...window.Engine.DEFAULT_RULES },
+      counters: freshCounters(), posHistory: [], moveFlags: [], capturedChess: [],
+    };
+    window.eval("G.mode = 'online';");
+    window.applyRemoteState(craftState(JSON.parse(JSON.stringify(uprightState))), 'top'); // bị lật: top ở dưới
+    await sleep(80);
+    check('flipped: board background is rotated', $('boardBg').innerHTML.includes('rotate(180'));
+    check('flipped: NO piece element is rotated (glyphs stay upright)',
+      ![...doc.querySelectorAll('.piece')].some(e => (e.style.transform || '').includes('rotate')));
+    check('flipped: river text stays outside the rotated group (upright)',
+      (() => { const s = window.eval("boardSvg('squares', true)"); return s.indexOf('SỞ HÀ') > s.indexOf('</g>'); })());
+    window.eval("G.mode = 'hotseat'; G.viewBottom = 'bottom';");
   }
 
   console.log(failures === 0 ? '\nALL UI TESTS PASSED' : `\n${failures} UI TEST(S) FAILED`);

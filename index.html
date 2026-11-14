@@ -14,7 +14,7 @@
 <header class="site-header">
   <h1>Cờ Vua <span class="vs">vs</span> Cờ Tướng</h1>
   <p class="tagline">Một bàn cờ, hai nền văn minh. Bên cầm bộ cờ tướng đấu với bên cầm bộ cờ vua.</p>
-  <span class="version">Bản v0.2.3 — đang lấy ý kiến người chơi</span>
+  <span class="version">Bản v0.2.4 — đang lấy ý kiến người chơi</span>
 </header>
 
 <main>
@@ -45,20 +45,27 @@
 
     <div id="matchupFields" class="grid-2">
       <div class="field">
-        <label class="field-label" for="topArmy">Quân bên TRÊN</label>
-        <select id="topArmy">
-          <option value="xiangqi" selected>Cờ tướng (đỏ)</option>
-          <option value="chess">Cờ vua</option>
+        <label class="field-label" for="myArmy">Bạn cầm</label>
+        <select id="myArmy">
+          <option value="xiangqi" selected>Cờ Tướng</option>
+          <option value="chess">Cờ Vua</option>
         </select>
       </div>
-      <div class="field">
-        <label class="field-label" for="bottomArmy">Quân bên DƯỚI</label>
-        <select id="bottomArmy">
-          <option value="chess" selected>Cờ vua</option>
-          <option value="xiangqi">Cờ tướng</option>
+      <div class="field" id="oppArmyField" hidden>
+        <label class="field-label" for="oppArmy">Đối thủ cầm</label>
+        <select id="oppArmy">
+          <option value="auto" selected>Bộ còn lại (mặc định)</option>
+          <option value="xiangqi">Cờ Tướng</option>
+          <option value="chess">Cờ Vua</option>
         </select>
       </div>
-      <p class="hint" id="matchupHint">Đối kháng lai kinh điển: Tướng ở trên, Vua ở dưới. Ở chế độ luyện tập, bạn cầm quân bên dưới, máy cầm quân bên trên — cứ chọn trùng loại (Vua vs Vua, Tướng vs Tướng) nếu muốn tập riêng từng hệ.</p>
+      <div class="field" id="flipPerTurnField" hidden>
+        <label class="rule-row">
+          <input type="checkbox" id="flipPerTurn">
+          <span><strong>Tự xoay bàn theo lượt</strong> — bàn tự lật để quân của người sắp đi luôn ở phía dưới.</span>
+        </label>
+      </div>
+      <p class="hint" id="matchupHint">Quân của bạn luôn ở phía dưới bàn, đối thủ mặc định cầm bộ còn lại. Riêng chế độ luyện tập với máy, mục "Đối thủ cầm" cho phép chọn trùng bộ của bạn để đấu trận gương (Tướng–Tướng, Vua–Vua).</p>
     </div>
 
     <div id="rulesBox" class="rules-box">
@@ -141,10 +148,10 @@
     <div id="onlineFields" class="online-box" hidden>
       <div class="grid-2">
         <div class="field">
-          <label class="field-label" for="hostArmy">Chủ phòng cầm quân</label>
+          <label class="field-label" for="hostArmy">Bạn cầm</label>
           <select id="hostArmy">
-            <option value="xiangqi" selected>Cờ tướng (bên trên)</option>
-            <option value="chess">Cờ vua (bên dưới)</option>
+            <option value="xiangqi" selected>Cờ Tướng</option>
+            <option value="chess">Cờ Vua</option>
           </select>
         </div>
         <div class="field">
@@ -162,7 +169,7 @@
         <input id="roomCodeInput" type="text" placeholder="Nhập mã phòng" maxlength="5" class="room-input">
         <button id="joinRoomBtn" class="btn" type="button">Vào phòng</button>
       </div>
-      <p class="hint" id="onlineStatus">Online dùng kết nối ngang hàng (WebRTC qua PeerJS) — cần có mạng. Chủ phòng tạo phòng rồi gửi mã cho người còn lại.</p>
+      <p class="hint" id="onlineStatus">Online dùng kết nối ngang hàng (WebRTC qua PeerJS) — cần có mạng. Chủ phòng tạo phòng rồi gửi mã cho người còn lại. Khách vào phòng tự động cầm bộ còn lại, và bàn trên mỗi máy tự lật để quân của mình ở dưới.</p>
     </div>
 
     <button id="startBtn" class="btn primary big" type="button">Bắt đầu ván</button>
@@ -287,7 +294,7 @@
 </div>
 
 <footer>
-  <p>Cờ Vua vs Cờ Tướng — dự án game mở, bản MVP v0.2.3. Chạy offline hoàn toàn (trừ chế độ Online Beta). Đưa lên GitHub Pages: chỉ cần đẩy toàn bộ thư mục này lên repo và bật Pages.</p>
+  <p>Cờ Vua vs Cờ Tướng — dự án game mở, bản MVP v0.2.4. Chạy offline hoàn toàn (trừ chế độ Online Beta). Đưa lên GitHub Pages: chỉ cần đẩy toàn bộ thư mục này lên repo và bật Pages.</p>
 </footer>
 
 <script src="game.js"></script>

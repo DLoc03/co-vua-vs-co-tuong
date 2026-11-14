@@ -4,7 +4,7 @@
 // Chủ dự án: điền link trang góp ý của repo (ví dụ GitHub Issues) vào đây khi tung bản public.
 const FEEDBACK_URL = 'https://github.com/DLoc03/co-vua-vs-co-tuong/issues';
 const PEER_PREFIX = 'cvvct-game-';
-const VERSION = 'v0.2.3';
+const VERSION = 'v0.2.4';
 
 const $ = id => document.getElementById(id);
 const E = window.Engine;
@@ -17,16 +17,42 @@ const G = {
   capturedBy: { top: [], bottom: [] },
   lastMove: null, over: false, result: null, lastReason: null,
   aiSide: 'top', mySide: null,
+  viewBottom: 'bottom', p1Side: 'bottom',
   pendingPromo: null, pendingGlyphId: null, pieceEls: new Map(),
   online: { peer: null, conn: null, isHost: false, code: '', started: false },
 };
 
 function armyName(army) { return army === 'xiangqi' ? 'Cờ tướng' : 'Cờ vua'; }
+function otherArmy(army) { return army === 'xiangqi' ? 'chess' : 'xiangqi'; }
+
+/** Quân hai bên theo lựa chọn ở màn thiết lập: "Bạn cầm" luôn là bên DƯỚI trong hệ quy chiếu engine;
+ *  đối thủ mặc định cầm bộ còn lại, riêng luyện tập với máy cho chọn trận gương qua "Đối thủ cầm". */
+function plannedArmies() {
+  const mode = currentMode();
+  if (mode === 'online') return { top: 'xiangqi', bottom: 'chess' };
+  const mine = $('myArmy').value;
+  if (mode === 'ai') {
+    const opp = $('oppArmy').value;
+    return { bottom: mine, top: opp === 'auto' ? otherArmy(mine) : opp };
+  }
+  return { bottom: mine, top: otherArmy(mine) };
+}
 function sideName(side) {
-  const base = `${armyName(G.board.armies[side])} (bên ${side === 'top' ? 'trên' : 'dưới'})`;
-  if (G.mode === 'ai') return side === G.aiSide ? `Máy — ${base}` : `Bạn — ${base}`;
-  if (G.mode === 'online' && G.mySide) return side === G.mySide ? `Bạn — ${base}` : `Đối thủ — ${base}`;
-  return base;
+  // Tên phe TUYỆT ĐỐI (không theo hướng nhìn): biên bản hai máy khớp nhau dù bàn lật ngược nhau.
+  const army = G.board.armies[side];
+  const label = army === 'xiangqi' ? 'Phe Tướng' : 'Phe Vua';
+  if (G.mode === 'ai') return `${side === G.aiSide ? 'Máy' : 'Bạn'} — ${label}`;
+  if (G.mode === 'online' && G.mySide) return `${side === G.mySide ? 'Bạn' : 'Đối thủ'} — ${label}`;
+  if (G.board.armies.top === G.board.armies.bottom) {
+    return `${label} (${side === (G.p1Side || 'bottom') ? 'P1' : 'P2'})`; // trận gương cùng máy: phân biệt P1/P2
+  }
+  return label;
+}
+/** Tên phe không kèm vai trò người chơi (dùng cho chú thích quân cờ). */
+function pheName(side) {
+  const n = sideName(side);
+  const i = n.indexOf(' — ');
+  return i >= 0 ? n.slice(i + 3) : n;
 }
 function skinName(skin) { return skin === 'squares' ? 'bàn ô vuông' : 'bàn vạch kẻ / giao điểm'; }
 
@@ -34,21 +60,33 @@ function skinName(skin) { return skin === 'squares' ? 'bàn ô vuông' : 'bàn v
 function glyphText(piece) { return E.glyphOf(piece) + (piece.army === 'chess' ? '\uFE0E' : ''); }
 
 /* ---------------- Vẽ nền bàn cờ ---------------- */
-function boardSvg(skin) {
+/* Skin ô vuông có KHE SÔNG THẬT: hai nửa bàn tách nhau một khoảng trống nửa ô giữa hàng 5 và 6 (chỉ hình thức). */
+const RIVER_GAP = 0.5; // đơn vị: ô cờ
+
+/* LẬT BÀN chỉ là phép biến đổi HIỂN THỊ: G.viewBottom cho biết bên engine nào đang được vẽ ở phía dưới màn hình.
+ * Khi bên "top" của engine ở dưới, toàn bộ bàn xoay 180° (đảo cả hàng lẫn cột) — tọa độ engine không đổi. */
+function isFlipped() { return (G.viewBottom || 'bottom') === 'top'; }
+function toDisplay(x, y) { return isFlipped() ? { x: 8 - x, y: 9 - y } : { x, y }; }
+
+function boardSvg(skin, flipped) {
   if (skin === 'squares') {
     let cells = '';
     for (let y = 0; y < 10; y++) for (let x = 0; x < 9; x++) {
-      cells += `<rect class="${(x + y) % 2 ? 'sq-b' : 'sq-a'}" x="${x * 100}" y="${y * 100}" width="100" height="100"/>`;
+      const dy = y * 100 + (y >= 5 ? RIVER_GAP * 100 : 0);
+      cells += `<rect class="${(x + y) % 2 ? 'sq-b' : 'sq-a'}" x="${x * 100}" y="${dy}" width="100" height="100"/>`;
     }
-    return `<svg viewBox="0 0 900 1000" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-      ${cells}
+    const innerSq = `${cells}
       <rect class="pal-a-fill" x="300" y="0" width="300" height="300"/>
-      <rect class="pal-b-fill" x="300" y="700" width="300" height="300"/>
+      <rect class="pal-b-fill" x="300" y="750" width="300" height="300"/>
       <rect class="pal-a-line" x="300" y="0" width="300" height="300" fill="none" stroke-width="3"/>
-      <rect class="pal-b-line" x="300" y="700" width="300" height="300" fill="none" stroke-width="3"/>
-      <rect class="svg-river" x="0" y="486" width="900" height="28"/>
-      <text class="svg-river-text" x="450" y="508" text-anchor="middle" font-size="21" font-weight="700" letter-spacing="6">SÔNG</text>
-      <rect class="svg-frame" x="1.5" y="1.5" width="897" height="997" fill="none" stroke-width="3"/>
+      <rect class="pal-b-line" x="300" y="750" width="300" height="300" fill="none" stroke-width="3"/>
+      <rect class="sq-gap" x="0" y="500" width="900" height="50"/>
+      <line class="sq-gap-edge" x1="0" y1="500" x2="900" y2="500"/>
+      <line class="sq-gap-edge" x1="0" y1="550" x2="900" y2="550"/>`;
+    return `<svg viewBox="0 0 900 1050" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      ${flipped ? `<g transform="rotate(180 450 525)">${innerSq}</g>` : innerSq}
+      <text class="sq-gap-text" x="450" y="537" text-anchor="middle" font-size="27" font-weight="700" letter-spacing="6">SỞ HÀ · HÁN GIỚI</text>
+      <rect class="svg-frame" x="1.5" y="1.5" width="897" height="1047" fill="none" stroke-width="3"/>
     </svg>`;
   }
   let lines = '';
@@ -61,25 +99,46 @@ function boardSvg(skin) {
     const py = y * 100 + 50;
     lines += `<line x1="50" y1="${py}" x2="850" y2="${py}"/>`;
   }
-  return `<svg viewBox="0 0 900 1000" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-    <rect class="ln-bg" x="0" y="0" width="900" height="1000"/>
+  const innerLn = `<rect class="ln-bg" x="0" y="0" width="900" height="1000"/>
     <rect class="ln-inner" x="38" y="38" width="824" height="924" stroke-width="3"/>
     <g class="ln-lines" stroke-width="2.4">${lines}</g>
     <g class="ln-lines" stroke-width="2.4">
       <line x1="350" y1="50" x2="550" y2="250"/><line x1="550" y1="50" x2="350" y2="250"/>
       <line x1="350" y1="750" x2="550" y2="950"/><line x1="550" y1="750" x2="350" y2="950"/>
-    </g>
+    </g>`;
+  return `<svg viewBox="0 0 900 1000" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    ${flipped ? `<g transform="rotate(180 450 500)">${innerLn}</g>` : innerLn}
     <text class="svg-river-text" x="450" y="516" text-anchor="middle" font-size="37" font-weight="700" letter-spacing="10">楚河 · 漢界</text>
     <rect class="ln-frame" x="38" y="38" width="824" height="924" fill="none" stroke-width="1.2"/>
   </svg>`;
 }
 
 /* ---------------- Render ---------------- */
-function centerPct(x, y) { return { left: (x + 0.5) / 9 * 100, top: (y + 0.5) / 10 * 100 }; }
+function centerPct(x, y) {
+  const d = toDisplay(x, y);
+  if (G.skin === 'squares') {
+    return { left: (d.x + 0.5) / 9 * 100, top: (d.y + 0.5 + (d.y >= 5 ? RIVER_GAP : 0)) / (10 + RIVER_GAP) * 100 };
+  }
+  return { left: (d.x + 0.5) / 9 * 100, top: (d.y + 0.5) / 10 * 100 };
+}
+
+/** Hàng HIỂN THỊ từ tọa độ chuột/chạm; bấm đúng vào khe sông (skin ô vuông) thì trả -1 để bỏ qua. */
+function boardRowFromPoint(clientY, rect) {
+  const fy = (clientY - rect.top) / rect.height;
+  if (G.skin === 'squares') {
+    const units = fy * (10 + RIVER_GAP);
+    if (units < 5) return Math.floor(units);
+    if (units < 5 + RIVER_GAP) return -1;
+    return Math.floor(units - RIVER_GAP);
+  }
+  return Math.floor(fy * 10);
+}
 
 function render() {
   if (!G.board) return;
-  $('boardBg').innerHTML = boardSvg(G.skin);
+  // 2 người cùng máy + bật "Tự xoay bàn theo lượt": bên sắp đi luôn ở phía dưới
+  if (G.mode === 'hotseat' && $('flipPerTurn') && $('flipPerTurn').checked) G.viewBottom = G.board.turn;
+  $('boardBg').innerHTML = boardSvg(G.skin, isFlipped());
   const boardEl = $('board');
   boardEl.className = 'board skin-' + G.skin;
 
@@ -134,7 +193,7 @@ function render() {
     } else {
       el.textContent = glyphText(p);
     }
-    el.title = `${E.PIECE_NAME_VI[p.kind]} — ${armyName(p.army)} bên ${p.side === 'top' ? 'trên' : 'dưới'}`;
+    el.title = `${E.PIECE_NAME_VI[p.kind]} — ${pheName(p.side)}`;
   }
   for (const [id, el] of [...G.pieceEls]) {
     if (!seenIds.has(id)) { el.remove(); G.pieceEls.delete(id); }
@@ -308,8 +367,10 @@ function performMove(move, source) {
 function maybeAiTurn() {
   if (G.mode !== 'ai' || G.over || !G.board || G.board.turn !== G.aiSide) return;
   render();
+  const boardAtSchedule = G.board;
   setTimeout(() => {
-    if (G.over) return;
+    // Kiểm tra lại khi timer chạy: người chơi có thể đã rời ván / mở ván khác trong lúc chờ
+    if (G.mode !== 'ai' || G.over || G.board !== boardAtSchedule || G.board.turn !== G.aiSide) return;
     const move = E.chooseAiMove(G.board, G.aiSide);
     if (move) performMove(move, 'ai');
   }, 420);
@@ -321,8 +382,11 @@ $('board').addEventListener('click', ev => {
   if (G.mode === 'ai' && G.board.turn === G.aiSide) return;
   if (G.mode === 'online' && G.board.turn !== G.mySide) return;
   const rect = $('board').getBoundingClientRect();
-  const x = Math.floor((ev.clientX - rect.left) / rect.width * 9);
-  const y = Math.floor((ev.clientY - rect.top) / rect.height * 10);
+  const dx = Math.floor((ev.clientX - rect.left) / rect.width * 9);
+  const dy = boardRowFromPoint(ev.clientY, rect);
+  if (dy < 0) return;
+  const x = isFlipped() ? 8 - dx : dx;
+  const y = isFlipped() ? 9 - dy : dy;
   if (!E.inBoard(x, y)) return;
 
   if (G.selected) {
@@ -397,7 +461,8 @@ function activeRulesList(board) {
 /** Mục luật bổ trợ chỉ hiện ở trận lai; panel Tùy chỉnh chỉ hiện khi chọn preset Tùy chỉnh. */
 function syncRulesBox() {
   const mode = currentMode();
-  const hybrid = mode === 'online' || $('topArmy').value !== $('bottomArmy').value;
+  const armies = plannedArmies();
+  const hybrid = armies.top !== armies.bottom;
   $('rulesBox').hidden = !hybrid;
   const preset = (document.querySelector('input[name="rulesPreset"]:checked') || {}).value;
   $('rulesCustom').hidden = preset !== 'custom';
@@ -425,23 +490,34 @@ function ensureChip(id, cls, parent) {
 const capSide = s => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** Thẻ người chơi hai đầu bàn: avatar + tên phe + dòng phụ, gắn chip bộ đếm vào đúng phe, sáng viền bên sắp đi. */
+/** Tên trên thẻ người chơi: vai trò của người đang xem + phe quân. */
+function cardRoleName(side, isXq) {
+  const armyLabel = isXq ? 'Phe Tướng' : 'Phe Vua';
+  if (G.mode === 'ai') return `${side === G.aiSide ? 'Máy' : 'Bạn'} — ${armyLabel}`;
+  if (G.mode === 'online') return `${side === G.mySide ? 'Bạn' : 'Đối thủ (online)'} — ${armyLabel}`;
+  return `${side === (G.p1Side || 'bottom') ? 'Bạn' : 'Đối thủ'} — ${armyLabel}`;
+}
+
 function renderCards() {
   const b = G.board;
   if (!b) return;
   const checkSide = !G.over && E.gameStatus(b).check ? b.turn : null;
-  for (const side of ['top', 'bottom']) {
+  const bottomSide = G.viewBottom || 'bottom';
+  const positions = [['Bottom', bottomSide], ['Top', E.otherSide(bottomSide)]];
+  for (const [pos, side] of positions) {
     const army = b.armies[side];
     const isXq = army === 'xiangqi';
-    const avatar = $('avatar' + capSide(side));
+    const avatar = $('avatar' + pos);
     avatar.textContent = glyphText({ army, kind: isXq ? 'general' : 'king', side });
     avatar.className = 'pc-avatar ' + (isXq ? 'pc-avatar-xq' : 'pc-avatar-chess');
-    $('pcName' + capSide(side)).textContent = isXq ? 'Phe Tướng' : 'Phe Vua';
-    $('pcSub' + capSide(side)).textContent = isXq ? 'Giáo mác · đi trước' : 'Súng đạn';
-    $('card' + capSide(side)).classList.toggle('active', b.turn === side && !G.over);
-    $('pcCheck' + capSide(side)).hidden = checkSide !== side;
+    $('pcName' + pos).textContent = cardRoleName(side, isXq);
+    $('pcSub' + pos).textContent = isXq ? 'Giáo mác · đi trước' : 'Súng đạn';
+    $('card' + pos).classList.toggle('active', b.turn === side && !G.over);
+    $('pcCheck' + pos).hidden = checkSide !== side;
   }
-  const xqChips = $('chips' + capSide(E.xiangqiSideOf(b) || 'top'));
-  const chChips = $('chips' + capSide(E.chessSideOf(b) || 'top'));
+  const posOf = side => (side === bottomSide ? 'Bottom' : 'Top');
+  const xqChips = $('chips' + posOf(E.xiangqiSideOf(b) || 'top'));
+  const chChips = $('chips' + posOf(E.chessSideOf(b) || 'top'));
   ensureChip('guerrillaCounter', 'rule-chip chip-guerrilla', xqChips);
   ensureChip('moveLimitCounter', 'rule-chip', xqChips);
   ensureChip('promoPool', 'rule-chip', chChips);
@@ -485,13 +561,15 @@ function syncSetupVisibility() {
   G.mode = mode;
   $('onlineFields').hidden = mode !== 'online';
   $('startBtn').hidden = mode === 'online';
+  $('oppArmyField').hidden = mode !== 'ai';
+  $('flipPerTurnField').hidden = mode !== 'hotseat';
   $('matchupFields').style.opacity = mode === 'online' ? '.45' : '1';
   $('skinVoteFields').style.opacity = mode === 'online' ? '.45' : '1';
   syncRulesBox();
 }
 document.querySelectorAll('input[name="mode"]').forEach(r => r.addEventListener('change', syncSetupVisibility));
-$('topArmy').addEventListener('change', syncRulesBox);
-$('bottomArmy').addEventListener('change', syncRulesBox);
+$('myArmy').addEventListener('change', syncRulesBox);
+$('oppArmy').addEventListener('change', syncRulesBox);
 document.querySelectorAll('input[name="rulesPreset"]').forEach(r => r.addEventListener('change', syncRulesBox));
 
 function resolveSkin(pref1, pref2, done) {
@@ -510,7 +588,9 @@ $('startBtn').addEventListener('click', () => {
   G.mode = mode;
   G.aiSide = 'top';
   G.mySide = null;
-  const armies = { top: $('topArmy').value, bottom: $('bottomArmy').value };
+  G.p1Side = 'bottom';   // người chọn "Bạn cầm" (P1) luôn ở phía dưới
+  G.viewBottom = 'bottom';
+  const armies = plannedArmies();
   resolveSkin($('skinP1').value, $('skinP2').value, skin => startGame(skin, armies));
 });
 
@@ -566,7 +646,7 @@ $('copyRecordBtn').addEventListener('click', async () => {
   const ruleList = activeRulesList(G.board);
   const lines = [
     `Cờ Vua vs Cờ Tướng — biên bản ván đấu (${VERSION})`,
-    `Chế độ: ${G.mode} · Bàn: ${skinName(G.skin)} · Trên: ${armyName(G.board.armies.top)} · Dưới: ${armyName(G.board.armies.bottom)}`,
+    `Chế độ: ${G.mode} · Bàn: ${skinName(G.skin)} · ${pheName('top')} vs ${pheName('bottom')}`,
     `Luật bổ trợ: ${ruleList.length ? ruleList.join('; ') : 'không (bản gốc)'}`,
     `Kết quả: ${G.over && G.result ? G.result.text.replace('\n', ' ') : 'ván chưa kết thúc'}${G.over && G.lastReason ? ` [mã lý do: ${G.lastReason}]` : ''}`,
     '',
@@ -620,7 +700,7 @@ function serializeGame() {
   }));
 }
 function applyRemoteState(s, yourSide) {
-  if (yourSide) G.mySide = yourSide;
+  if (yourSide) { G.mySide = yourSide; G.viewBottom = yourSide; } // quân của mình luôn ở dưới trên máy mình
   if (G.mode === 'online') {
     G.online.started = true;
     hideConnStatus(); // nhận được state tức là kết nối đang sống
@@ -647,7 +727,7 @@ function applyRemoteState(s, yourSide) {
 }
 function broadcastState() {
   if (G.online.conn && G.online.conn.open) {
-    G.online.conn.send({ type: 'state', state: serializeGame(), yourSide: E.otherSide(G.mySide) });
+    G.online.conn.send({ type: 'state', state: serializeGame(), yourSide: E.otherSide(G.mySide), version: VERSION });
   }
 }
 
@@ -684,9 +764,16 @@ $('createRoomBtn').addEventListener('click', async () => {
         hideConnStatus();
         if (!msg || typeof msg !== 'object') return;
         if (msg.type === 'hello') {
+          if (msg.version !== VERSION) {
+            // Lệch phiên bản: báo rõ thay vì để hai máy lệch bàn âm thầm
+            onlineStatus('Đối thủ đang dùng phiên bản khác, hãy tải lại trang');
+            if (conn.open) conn.send({ type: 'versionMismatch', version: VERSION });
+            return;
+          }
           if (G.online.started) { broadcastState(); return; } // hello trùng / khách kết nối lại: chỉ đồng bộ lại state, KHÔNG reset ván đang đấu
           const hostArmy = $('hostArmy').value;
           G.mySide = hostArmy === 'xiangqi' ? 'top' : 'bottom';
+          G.viewBottom = G.mySide; // quân của chủ phòng ở dưới trên máy chủ phòng
           const armies = { top: 'xiangqi', bottom: 'chess' };
           resolveSkin($('mySkinOnline').value, msg.skinPref, skin => {
             startGame(skin, armies);
@@ -737,10 +824,20 @@ $('joinRoomBtn').addEventListener('click', async () => {
       G.online.conn = conn;
       conn.on('open', () => {
         onlineStatus('Đã kết nối tới phòng — chờ chủ phòng bắt đầu ván…');
-        conn.send({ type: 'hello', skinPref: $('mySkinOnline').value });
+        conn.send({ type: 'hello', skinPref: $('mySkinOnline').value, version: VERSION });
       });
       conn.on('data', msg => {
-        if (msg && msg.type === 'state') applyRemoteState(msg.state, msg.yourSide);
+        if (msg && msg.type === 'versionMismatch') {
+          onlineStatus('Đối thủ đang dùng phiên bản khác, hãy tải lại trang');
+          return;
+        }
+        if (msg && msg.type === 'state') {
+          if (msg.version !== VERSION) {
+            onlineStatus('Đối thủ đang dùng phiên bản khác, hãy tải lại trang');
+            return;
+          }
+          applyRemoteState(msg.state, msg.yourSide);
+        }
       });
       conn.on('close', () => {
         if (G.online.started) showConnStatus();
