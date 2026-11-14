@@ -205,6 +205,17 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check('guest: rules line still shows host rules', $('rulesLine').textContent.includes('Du kích'), $('rulesLine').textContent);
   setRadio('mode', 'hotseat');
 
+  // ================= v0.2.1: KIỂM TRA CSS MOBILE =================
+  {
+    const css = require('fs').readFileSync(path.join(__dirname, '..', 'style.css'), 'utf8');
+    check('css has mobile breakpoint 720px', css.includes('@media (max-width: 720px)'));
+    check('mobile: board sized by viewport height (dvh)', css.includes('100dvh'));
+    check('mobile: touch targets at least 44px', css.includes('min-height: 44px'));
+    check('mobile: form inputs 16px (no iOS auto-zoom)', css.includes('font-size: 16px'));
+    check('landscape phones: dedicated media query', css.includes('orientation: landscape'));
+    check('viewport meta present', doc.querySelector('meta[name="viewport"]') !== null);
+  }
+
   console.log(failures === 0 ? '\nALL UI TESTS PASSED' : `\n${failures} UI TEST(S) FAILED`);
   window.close();
   process.exit(failures ? 1 : 0);

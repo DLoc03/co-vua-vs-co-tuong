@@ -59,7 +59,7 @@ select, .room-input {
 .board {
   position: relative; width: 100%; aspect-ratio: 9 / 10; border-radius: 10px; overflow: hidden;
   box-shadow: 0 14px 34px rgba(25, 18, 55, .28); cursor: pointer; user-select: none; touch-action: manipulation;
-  background: #e8cfa0;
+  background: #e8cfa0; -webkit-tap-highlight-color: transparent;
 }
 .board-bg, .board-bg svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .layer { position: absolute; inset: 0; pointer-events: none; }
@@ -143,3 +143,63 @@ footer { max-width: 900px; margin: 0 auto; padding: 4px 16px 26px; text-align: c
 .rules-counters { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
 .rule-chip { background: #fff; border: 1px solid #d8c26a; border-radius: 999px; padding: 2px 10px; font-weight: 600; }
 #endText { white-space: pre-line; }
+
+/* ================= MOBILE (v0.2.1) =================
+   Mục tiêu: trên điện thoại, bàn cờ vừa trọn chiều cao màn hình (không phải
+   cuộn mới thấy hết bàn), mọi nút bấm đủ lớn cho ngón tay, các form xếp 1 cột. */
+.btn, .radio-card, select, .rule-row { touch-action: manipulation; }
+
+@media (max-width: 720px) {
+  .site-header { padding: 14px 10px 12px; }
+  .site-header h1 { font-size: 24px; }
+  .tagline { font-size: 13.5px; }
+  main { padding: 6px 8px 20px; }
+  .panel { padding: 12px; border-radius: 12px; }
+  .setup { margin: 4px auto; }
+
+  /* Form thiết lập: 1 cột cho dễ chạm */
+  .grid-2 { grid-template-columns: 1fr; gap: 10px; }
+  select, .room-input { font-size: 16px; padding: 11px; } /* 16px: tránh iOS tự phóng to khi chạm vào ô nhập */
+  .btn { min-height: 44px; padding: 10px 14px; }
+  .btn.big { min-height: 50px; }
+  .online-actions { align-items: stretch; }
+  .online-actions .room-input { flex: 1 1 120px; width: auto; }
+  .online-actions .btn { flex: 1 1 auto; }
+  .rule-row { flex-wrap: wrap; }
+  .rule-row select { margin-left: 26px; min-height: 40px; }
+
+  /* Ván đấu: 1 cột, bàn cờ căn giữa và bị giới hạn bởi chiều cao màn hình */
+  .game-layout { grid-template-columns: 1fr; gap: 12px; }
+  .turn-banner { font-size: 15.5px; padding: 8px; margin-bottom: 8px; }
+  .board {
+    margin-inline: auto;
+    width: min(100%, max(230px, calc((100vh - 196px) * 0.9)));
+    width: min(100%, max(230px, calc((100dvh - 196px) * 0.9)));
+  }
+  .board-note { font-size: 13px; }
+  .actions .btn { flex: 1 1 30%; }
+  .captured-list { font-size: 17px; }
+  .move-list { max-height: 210px; font-size: 14px; }
+  .rules-bar { font-size: 13.5px; padding: 7px 10px; }
+  .rule-chip { padding: 2px 8px; }
+
+  /* Hộp thoại: vừa màn hình nhỏ, nút phong cấp vẫn đủ lớn */
+  .modal { padding: 10px; }
+  .modal-box { padding: 16px 14px; }
+  .promo-choices { gap: 8px; flex-wrap: wrap; }
+  .promo-choices button { width: 64px; height: 70px; font-size: 32px; }
+  footer { font-size: 12.5px; }
+}
+
+/* Điện thoại nằm ngang: chiều cao rất thấp — chia 2 cột, bàn theo chiều cao */
+@media (max-height: 500px) and (orientation: landscape) {
+  .site-header { padding: 8px 10px; }
+  .site-header h1 { font-size: 20px; display: inline; margin-right: 8px; }
+  .tagline { display: none; }
+  .game-layout { grid-template-columns: auto 290px; gap: 12px; }
+  .board {
+    width: max(200px, calc((100vh - 150px) * 0.9));
+    width: max(200px, calc((100dvh - 150px) * 0.9));
+  }
+  .move-list { max-height: 160px; }
+}

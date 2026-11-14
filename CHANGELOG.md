@@ -1,5 +1,12 @@
 # CHANGELOG — Cờ Vua vs Cờ Tướng
 
+## v0.2.1 — Tối ưu giao diện mobile
+
+- Thêm CSS responsive cho màn hình nhỏ (≤720px): màn hình thiết lập xếp 1 cột; trong ván, bàn cờ căn giữa và tự giới hạn kích thước theo chiều cao màn hình (`dvh`) để thấy trọn bàn mà không phải cuộn; tiêu đề và khoảng đệm thu gọn.
+- Nút bấm và ô nhập đạt kích thước thân thiện với cảm ứng (nút cao tối thiểu 44px, ô nhập 16px để tránh iOS tự phóng to khi chạm); hàng nút thao tác (Đi lại / Xin thua / Ván mới) chia đều chiều ngang; hộp chọn phong cấp và các hộp thoại co gọn theo màn hình.
+- Điện thoại nằm ngang (chiều cao thấp): bố cục 2 cột, bàn cờ theo chiều cao màn hình, ẩn dòng khẩu hiệu cho gọn.
+- Chỉ thay đổi CSS và số phiên bản — engine, luật chơi và giao diện desktop không đổi.
+
 ## v0.2.0 — Luật bổ trợ phe Tướng
 
 Bộ luật tùy chọn giúp phe Tướng (phe yếu thế trong thực chiến) có thêm đường thắng, với nguyên tắc cứng: **không đổi nước đi của bất kỳ quân nào, không thêm/bớt quân, không đổi vị trí xếp quân ban đầu** — chỉ thêm luật về điều kiện thắng/hòa, phong cấp, chiếu dai, hết nước. Mọi luật mặc định **tắt**; tắt hết thì game chạy y hệt v0.1.1. Chỉ áp dụng ở trận lai, trận gương tắt hoàn toàn.

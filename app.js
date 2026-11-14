@@ -4,7 +4,7 @@
 // Chủ dự án: điền link trang góp ý của repo (ví dụ GitHub Issues) vào đây khi tung bản public.
 const FEEDBACK_URL = 'https://github.com/DLoc03/co-vua-vs-co-tuong/issues';
 const PEER_PREFIX = 'cvvct-game-';
-const VERSION = 'v0.2.0';
+const VERSION = 'v0.2.1';
 
 const $ = id => document.getElementById(id);
 const E = window.Engine;
