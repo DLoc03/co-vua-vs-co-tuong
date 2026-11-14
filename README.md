@@ -1,11 +1,20 @@
 # ⚔️ Cờ Vua vs Cờ Tướng — Đông đấu Tây
 
 Một game cờ lai: **một người cầm bộ cờ tướng, một người cầm bộ cờ vua, đấu nhau trên cùng một bàn cờ.**
-Bản v0.2.0 — tung ra để lấy ý kiến người chơi về cân bằng và luật lai.
+Bản v0.2.2 — tung ra để lấy ý kiến người chơi về cân bằng và luật lai.
 
 > **Mới ở v0.2.0 — Luật bổ trợ phe Tướng:** vì thực chiến cho thấy phe Tướng yếu thế hơn, game có thêm bộ luật bổ trợ tùy chọn (mặc định **tắt** — chọn preset "Đề xuất" hoặc "Tùy chỉnh" ở màn hình thiết lập). Các luật này **không đổi nước đi, số quân hay vị trí xếp quân** của hai bộ cờ, chỉ thêm điều kiện thắng/hòa và giới hạn phong cấp. Chi tiết ở mục riêng phía dưới.
 >
 > **Mới ở v0.1.1:** quân cờ **trượt đi mượt mà** khi di chuyển thay vì nhảy tới vị trí mới (áp dụng cho cả nước của đối thủ / máy / online), ô xuất phát và ô đích của nước vừa đi nhấp nháy làm nổi bật, và dưới bàn cờ luôn hiện dòng "Nước vừa đi: …" để khỏi bỏ lỡ nước của đối thủ. Người chơi bật chế độ giảm chuyển động (prefers-reduced-motion) sẽ tự động tắt hiệu ứng trượt.
+
+## Có gì mới ở v0.2.2
+
+- Toàn bộ giao diện khoác áo mới phong cách **Sơn mài cung đình**: nền đen sơn mài viền vàng, quân Tướng là đĩa ngà chữ đỏ son, bỏ hết emoji — ván cờ trông trang trọng hẳn lên.
+- Thêm **thẻ người chơi** ở hai đầu bàn cờ: nhìn một cái là biết lượt của ai, phe Tướng đã chiếu được mấy lần Du kích, phe Vua còn bao nhiêu nước Trường kỳ.
+- Chơi trên **điện thoại** sướng hơn: máy màn hình nhỏ chơi trọn ván không cần cuộn trang, nút bấm to dễ chạm.
+- Luật chơi giữ nguyên từ v0.2.0 — gồm bộ **Luật bổ trợ phe Tướng** tùy chọn cho phe yếu thế. Bản này chỉ làm đẹp và tiện hơn, không đổi luật.
+
+**Chơi thử rồi góp ý giúp mình nhé!** Cứ mở một [Issue](https://github.com/DLoc03/co-vua-vs-co-tuong/issues) và kể cảm nhận của bạn: phe nào đang mạnh/yếu, luật nào khó hiểu. Khi góp ý, bạn nhớ ghi rõ **ván đó có bật luật bổ trợ nào không** — bạn đang chơi preset "Bản gốc", "Đề xuất" hay "Tùy chỉnh" với những luật cụ thể nào — vì thông tin này quyết định cách mình chỉnh cân bằng ở bản tiếp theo. Đính kèm biên bản ván đấu (trong game có nút "Sao chép biên bản để góp ý") thì càng tốt!
 
 ## Chơi ngay
 
@@ -82,6 +91,7 @@ Khi nhiều điều kiện cùng xảy ra ở một nước đi, engine xét the
 
 Trong game có nút **"Sao chép biên bản để góp ý"** — bấm nút đó sau ván đấu, dán biên bản vào issue kèm nhận xét của bạn:
 
+- Ván đó bạn có bật **luật bổ trợ** nào không? (preset "Bản gốc" / "Đề xuất" / "Tùy chỉnh" — nếu tùy chỉnh thì bật những luật nào)
 - Phe nào đang quá mạnh / quá yếu? Vì quân nào?
 - Luật lai nào khó hiểu hoặc vô lý?
 - Đề xuất chấp quân / chỉnh luật?
