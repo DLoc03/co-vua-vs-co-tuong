@@ -1,5 +1,15 @@
 # CHANGELOG — Cờ Vua vs Cờ Tướng
 
+## v0.2.3 — Sửa hành vi chế độ Online
+
+Đưa trải nghiệm online về đúng chuẩn game cờ online thông thường (không đổi luật, không đổi giao diện sơn mài):
+
+- **Khách đi ngay, không chờ:** trước đây khách bấm nước đi phải chờ chủ phòng xác nhận mới thấy quân di chuyển, kèm dòng chữ "Đã gửi nước đi, chờ chủ phòng xác nhận…". Nay cả khách lẫn chủ phòng bấm là quân đi ngay tại máy mình; nước của khách được gửi cho chủ phòng kiểm chứng ngầm.
+- **Kiểm chứng ngầm, im lặng tuyệt đối:** chủ phòng kiểm tra lại nước của khách chỉ để chống lệch bàn và chống sửa code. Lệch thì chủ phòng gửi lại state chuẩn, máy khách tự đồng bộ theo — không hiện bất kỳ thông báo "nước đi không hợp lệ" nào (giao diện vốn chỉ cho chọn nước hợp lệ); sự kiện chỉ ghi `console.warn` để debug.
+- **Cảnh báo chiếu rõ hơn ở cả hai máy:** ngoài quân vương phát sáng và banner lượt đi như trước, thẻ của người chơi đang bị chiếu nay hiện thêm nhãn đỏ "Đang bị chiếu!".
+- **Trạng thái kết nối:** trong ván chỉ hiện khi thật sự mất kết nối — dòng "Mất kết nối, đang thử lại…" — và tự ẩn khi kết nối lại; không còn thông báo trạng thái nào khác chen vào ván đấu.
+- **Tái đấu trong cùng phòng + rà soát vòng đời chủ phòng:** nút "Ván mới" khi đang ở trong phòng online giờ mở ván mới ngay trong cùng phòng (chủ phòng mở ván, khách bấm sẽ gửi yêu cầu để chủ phòng mở) thay vì đá cả hai về màn hình thiết lập như trước — trước đây về thiết lập rồi thì không có đường nào bắt đầu ván mới trong phòng cũ. Khách kết nối lại và gửi lại "hello" giữa ván thì chủ phòng chỉ đồng bộ lại state, không reset ván đang đấu; mỗi lần tạo/vào phòng mới, trạng thái phiên được đặt lại sạch. Đã rà soát toàn bộ vòng đời cờ `isHost`: cờ chỉ được gán khi tạo phòng (= true) / vào phòng (= false) và không bị ghi đè bởi đồng bộ state, kết nối lại, đổi quân hay bắt đầu ván mới; có test tự động mô phỏng trọn vòng đời chủ phòng (tạo phòng → khách vào → đi nước đầu → khách đi → khách hello lại → khách xin thua → tái đấu → đi tiếp) khẳng định chủ phòng đi ngay ở mọi thời điểm.
+
 ## v0.2.2 — Giao diện "Sơn mài cung đình"
 
 Đổi toàn bộ hình thức sang phong cách sơn mài cung đình (nền đen sơn mài, vàng, đỏ son, gỗ) — **chỉ đổi hình thức, không đụng logic game và engine**. Bộ màu khai báo thành biến CSS trong `:root`, ba font có hỗ trợ tiếng Việt: Playfair Display (tiêu đề), Be Vietnam Pro (chữ thường), Noto Serif SC subset đúng 13 ký tự quân tướng (chữ trên quân cờ tướng). Glyph cờ vua được nối ký tự biến thể văn bản (U+FE0E) để không bị biến thành emoji màu trên iOS/Android. Toàn bộ emoji trong giao diện được gỡ bỏ.

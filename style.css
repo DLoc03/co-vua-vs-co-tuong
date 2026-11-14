@@ -429,6 +429,17 @@ footer { color: var(--chu-phu); }
   font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 13.5px;
 }
 
+/* ================= BẢN 0.2.3: CẢNH BÁO CHIẾU TRÊN THẺ + TRẠNG THÁI KẾT NỐI ================= */
+.pc-check {
+  display: inline-block; margin-top: 3px; padding: 1px 8px; border-radius: 999px;
+  background: var(--do-son); color: var(--chu-chip-do); font-size: 11.5px; font-weight: 700;
+}
+.pc-check[hidden] { display: none; }
+.conn-status {
+  text-align: center; margin: 8px 0 0; font-weight: 600;
+  color: color-mix(in srgb, var(--do-son) 45%, var(--chu));
+}
+
 /* ================= MOBILE (v0.2.1) =================
    Mục tiêu: trên điện thoại, bàn cờ vừa trọn chiều cao màn hình (không phải
    cuộn mới thấy hết bàn), mọi nút bấm đủ lớn cho ngón tay, các form xếp 1 cột. */
