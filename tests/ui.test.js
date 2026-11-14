@@ -164,7 +164,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await sleep(500);
   check('promotion modal closes after choosing', $('promoModal').hidden);
   const promotedEl = [...doc.querySelectorAll('.piece')].find(e => Math.abs(parseFloat(e.style.top) - 5) < 0.2 && Math.abs(parseFloat(e.style.left) - 5.56) < 0.2);
-  check('pawn promoted to rook glyph', !!promotedEl && promotedEl.textContent === '♖', promotedEl && promotedEl.textContent);
+  check('pawn promoted to rook glyph (with text variation selector)', !!promotedEl && promotedEl.textContent === '♖\uFE0E', promotedEl && JSON.stringify(promotedEl.textContent));
   check('pool chip back to empty after promotion', $('promoPool').textContent.includes('trống'), $('promoPool').textContent);
 
   // Thắng Du kích: thông báo đúng reason + dòng vinh danh + biên bản ghi luật và mã lý do
@@ -184,7 +184,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await sleep(150);
   check('guerrilla win: end modal shows', !$('endModal').hidden);
   check('end text names the Du kich rule', $('endText').textContent.includes('Du kích'), $('endText').textContent);
-  check('end text has the underdog honor line', $('endText').textContent.includes('giáo mác thắng súng đạn'), $('endText').textContent);
+  check('honor ribbon shows for the underdog win', !$('endHonor').hidden && $('endHonor').textContent.includes('giáo mác thắng súng đạn'), $('endHonor').textContent);
+  check('end title has no emoji, icon is an SVG trophy', $('endTitle').textContent === 'Có người thắng!' && $('endIcon').innerHTML.includes('<svg'), $('endTitle').textContent);
   check('guerrilla counter shows 1/1 after win', $('guerrillaCounter').textContent.includes('1/1'), $('guerrillaCounter').textContent);
   Object.defineProperty(window.navigator, 'clipboard', {
     configurable: true,
@@ -194,6 +195,48 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await sleep(120);
   check('move record lists active rules', (window.__copied || '').includes('Luật bổ trợ') && (window.__copied || '').includes('Du kích'), window.__copied);
   check('move record includes the end reason code', (window.__copied || '').includes('guerrilla'), window.__copied);
+
+  // ================= SƠN MÀI CUNG ĐÌNH — BƯỚC 1 =================
+  {
+    const cssText2 = require('fs').readFileSync(require('path').join(__dirname, '..', 'style.css'), 'utf8');
+    check('lacquer palette variables declared', cssText2.includes('--nen: #1A0E0B') && cssText2.includes('--vang: #D4A64A')
+      && cssText2.includes('--quan-tuong-chu: #A3201B') && cssText2.includes('--song: #5A2A1E'));
+    const htmlText = require('fs').readFileSync(require('path').join(__dirname, '..', 'index.html'), 'utf8');
+    check('google fonts linked (Playfair + Be Vietnam Pro)', htmlText.includes('Playfair+Display') && htmlText.includes('Be+Vietnam+Pro'));
+    check('Noto Serif SC subset linked', htmlText.includes('Noto+Serif+SC') && htmlText.includes('text=%E5%B0%87'));
+    check('river band element with lacquer text', !!$('riverBand') && $('riverBand').textContent.includes('SỞ HÀ · HÁN GIỚI'));
+    // Bước 2 + chỉnh thêm
+    check('squares skin river collapses to a gold line', cssText2.includes('.skin-squares #riverBand'));
+    check('compact player cards under 720px height', cssText2.includes('@media (max-height: 719px)'));
+    check('room code input uses Playfair', cssText2.includes('#roomCodeInput') && cssText2.includes('letter-spacing: 3px'));
+    check('promo choices are 56px lacquer cells', cssText2.includes('#promoModal .promo-choices button') && cssText2.includes('width: 56px'));
+    check('move record box variable + monospace', cssText2.includes('--hop-ban: #120A08') && cssText2.includes('ui-monospace'));
+    check('honor ribbon styled', cssText2.includes('.end-honor'));
+    check('coin is an inline SVG, not an emoji', !!doc.querySelector('#coinEl svg'));
+    check('copy room code button with aria-label', !!$('copyCodeBtn') && $('copyCodeBtn').getAttribute('aria-label') === 'Sao chép mã phòng');
+    check('promo buttons carry FE0E + aria-labels', doc.querySelector('[data-promo="queen"]').textContent.includes('\uFE0E')
+      && !!doc.querySelector('[data-promo="queen"]').getAttribute('aria-label'));
+  }
+  $('newGameBtn').click();
+  await sleep(60);
+  setRadio('rulesPreset', 'suggested');
+  $('startBtn').click();
+  await sleep(300);
+  check('player cards rendered: Tuong top / Vua bottom', $('pcNameTop').textContent === 'Phe Tướng' && $('pcNameBottom').textContent === 'Phe Vua',
+    $('pcNameTop').textContent + '/' + $('pcNameBottom').textContent);
+  check('card subtitles follow the story', $('pcSubTop').textContent.includes('Giáo mác') && $('pcSubBottom').textContent.includes('Súng đạn'));
+  check('avatars show royal glyphs', $('avatarTop').textContent === '帥' && $('avatarBottom').textContent === '♔\uFE0E',
+    JSON.stringify($('avatarTop').textContent) + '/' + JSON.stringify($('avatarBottom').textContent));
+  check('guerrilla chip lives in the xiangqi card', $('guerrillaCounter').closest('.player-card').id === 'cardTop');
+  check('promotion pool chip lives in the chess card', $('promoPool').closest('.player-card').id === 'cardBottom');
+  check('active turn card highlighted (xiangqi/top first)', $('cardTop').classList.contains('active') && !$('cardBottom').classList.contains('active'));
+  const chessPieceEl = [...doc.querySelectorAll('.piece.chess')][0];
+  check('chess glyphs carry the FE0E variation selector', !!chessPieceEl && chessPieceEl.textContent.endsWith('\uFE0E'), chessPieceEl && JSON.stringify(chessPieceEl.textContent));
+  clickBoard(0, 3);
+  await sleep(60);
+  clickBoard(0, 4);
+  await sleep(120);
+  check('last-move line bolds the move name', !!$('boardNote').querySelector('strong') && $('boardNote').textContent.includes('Nước vừa đi'));
 
   // Khách online: điều khiển luật bị khóa, chỉ xem
   setRadio('mode', 'online');
