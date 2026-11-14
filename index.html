@@ -5,12 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cờ Vua vs Cờ Tướng — Đông đấu Tây</title>
 <link rel="stylesheet" href="style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@700&text=%E5%B0%87%E5%B8%A5%E8%BB%8A%E4%BF%A5%E9%A6%AC%E5%82%8C%E7%82%AE%E8%B1%A1%E7%9B%B8%E5%A3%AB%E4%BB%95%E5%8D%92%E5%85%B5&display=swap" rel="stylesheet">
 </head>
 <body>
 <header class="site-header">
-  <h1>⚔️ Cờ Vua <span class="vs">vs</span> Cờ Tướng</h1>
+  <h1>Cờ Vua <span class="vs">vs</span> Cờ Tướng</h1>
   <p class="tagline">Một bàn cờ, hai nền văn minh. Bên cầm bộ cờ tướng đấu với bên cầm bộ cờ vua.</p>
-  <span class="version">Bản v0.2.1 — đang lấy ý kiến người chơi</span>
+  <span class="version">Bản v0.2.2 — đang lấy ý kiến người chơi</span>
 </header>
 
 <main>
@@ -23,17 +27,17 @@
       <div class="radio-cards" id="modeCards">
         <label class="radio-card">
           <input type="radio" name="mode" value="hotseat" checked>
-          <strong>👥 2 người cùng máy</strong>
+          <strong>2 người cùng máy</strong>
           <small>Đối kháng offline trên cùng một thiết bị</small>
         </label>
         <label class="radio-card">
           <input type="radio" name="mode" value="ai">
-          <strong>🤖 Luyện tập với máy</strong>
+          <strong>Luyện tập với máy</strong>
           <small>Chọn bất cứ bộ quân nào cho bạn và cho máy để làm quen cơ chế</small>
         </label>
         <label class="radio-card">
           <input type="radio" name="mode" value="online">
-          <strong>🌐 Online (Beta)</strong>
+          <strong>Online (Beta)</strong>
           <small>Tạo phòng bằng mã, gửi cho bạn bè ở máy khác cùng vào đấu</small>
         </label>
       </div>
@@ -58,7 +62,7 @@
     </div>
 
     <div id="rulesBox" class="rules-box">
-      <label class="field-label">🛡️ Luật bổ trợ phe Tướng <span class="hint-inline">(chỉ áp dụng cho trận lai — phe Tướng đang yếu thế hơn)</span></label>
+      <label class="field-label">Luật bổ trợ phe Tướng <span class="hint-inline">(chỉ áp dụng cho trận lai — phe Tướng đang yếu thế hơn)</span></label>
       <div class="radio-cards rules-presets">
         <label class="radio-card">
           <input type="radio" name="rulesPreset" value="original" checked>
@@ -79,7 +83,7 @@
       <div id="rulesCustom" hidden>
         <label class="rule-row">
           <input type="checkbox" id="ruleGuerrilla">
-          <span><strong>⚔️ Du kích</strong> — Bên Tướng hễ chiếu đủ số lần quy định là thắng ngay, khỏi cần chiếu bí.</span>
+          <span><strong>Du kích</strong> — Bên Tướng hễ chiếu đủ số lần quy định là thắng ngay, khỏi cần chiếu bí.</span>
           <select id="ruleGuerrillaN" aria-label="Số lần chiếu để thắng Du kích">
             <option value="3" selected>3 lần chiếu</option>
             <option value="4">4 lần chiếu</option>
@@ -88,11 +92,11 @@
         </label>
         <label class="rule-row">
           <input type="checkbox" id="ruleDefender">
-          <span><strong>🏯 Giữ thành</strong> — Mọi kết quả hòa (lặp thế, hết nước theo Chính nghĩa) đều chuyển thành bên Tướng thắng.</span>
+          <span><strong>Giữ thành</strong> — Mọi kết quả hòa (lặp thế, hết nước theo Chính nghĩa) đều chuyển thành bên Tướng thắng.</span>
         </label>
         <label class="rule-row">
           <input type="checkbox" id="ruleMoveLimit">
-          <span><strong>⏳ Trường kỳ kháng chiến</strong> — Bên Vua đi đủ số nước quy định mà chưa chiếu bí được thì bên Tướng thắng.</span>
+          <span><strong>Trường kỳ kháng chiến</strong> — Bên Vua đi đủ số nước quy định mà chưa chiếu bí được thì bên Tướng thắng.</span>
           <select id="ruleMoveLimitX" aria-label="Số nước tối đa của bên Vua">
             <option value="60" selected>60 nước</option>
             <option value="70">70 nước</option>
@@ -101,19 +105,19 @@
         </label>
         <label class="rule-row">
           <input type="checkbox" id="rulePromote">
-          <span><strong>🎒 Hậu cần có hạn</strong> — Tốt vua chỉ phong cấp thành quân mà bên Vua đã bị ăn mất; kho trống thì Tốt không vào được hàng cuối.</span>
+          <span><strong>Hậu cần có hạn</strong> — Tốt vua chỉ phong cấp thành quân mà bên Vua đã bị ăn mất; kho trống thì Tốt không vào được hàng cuối.</span>
         </label>
         <label class="rule-row">
           <input type="checkbox" id="rulePerpetual">
-          <span><strong>⚖️ Chính nghĩa — chiếu dai</strong> — Bên Vua chiếu dai (lặp thế mà mọi nước của bên Vua đều là nước chiếu) thì bên Vua thua. Bên Tướng chiếu dai vẫn hợp lệ.</span>
+          <span><strong>Chính nghĩa — chiếu dai</strong> — Bên Vua chiếu dai (lặp thế mà mọi nước của bên Vua đều là nước chiếu) thì bên Vua thua. Bên Tướng chiếu dai vẫn hợp lệ.</span>
         </label>
         <label class="rule-row">
           <input type="checkbox" id="ruleStalemate">
-          <span><strong>⚖️ Chính nghĩa — giữ hòa</strong> — Bên Tướng hết nước đi mà không bị chiếu thì hòa, thay vì thua như luật gốc.</span>
+          <span><strong>Chính nghĩa — giữ hòa</strong> — Bên Tướng hết nước đi mà không bị chiếu thì hòa, thay vì thua như luật gốc.</span>
         </label>
       </div>
       <p class="hint" id="rulesOnlineNote">Chế độ online: luật áp dụng là luật <strong>chủ phòng</strong> chọn khi tạo phòng. Khách vào phòng sẽ thấy danh sách luật trong ván ở chế độ chỉ xem.</p>
-      <p class="hint" id="rulesGuestNote" hidden>🔒 Bạn đang vào phòng của người khác — luật do chủ phòng quyết định, mục này chỉ để xem, không sửa được.</p>
+      <p class="hint" id="rulesGuestNote" hidden>Bạn đang vào phòng của người khác — luật do chủ phòng quyết định, mục này chỉ để xem, không sửa được.</p>
     </div>
 
     <div id="skinVoteFields" class="grid-2">
@@ -153,6 +157,7 @@
       </div>
       <div class="online-actions">
         <button id="createRoomBtn" class="btn primary" type="button">Tạo phòng mới</button>
+        <button id="copyCodeBtn" class="btn" type="button" aria-label="Sao chép mã phòng" hidden>Sao chép mã</button>
         <span class="or">hoặc</span>
         <input id="roomCodeInput" type="text" placeholder="Nhập mã phòng" maxlength="5" class="room-input">
         <button id="joinRoomBtn" class="btn" type="button">Vào phòng</button>
@@ -160,10 +165,10 @@
       <p class="hint" id="onlineStatus">Online dùng kết nối ngang hàng (WebRTC qua PeerJS) — cần có mạng. Chủ phòng tạo phòng rồi gửi mã cho người còn lại.</p>
     </div>
 
-    <button id="startBtn" class="btn primary big" type="button">▶ Bắt đầu ván</button>
+    <button id="startBtn" class="btn primary big" type="button">Bắt đầu ván</button>
 
     <details class="rules">
-      <summary>📜 Luật đã áp dụng trong bản này (bấm để xem)</summary>
+      <summary>Luật đã áp dụng trong bản này (bấm để xem)</summary>
       <ul>
         <li>Bàn thống nhất 9 cột × 10 hàng. Bên cờ tướng đi trước. Hàng cuối cờ vua ở cột 1–8, Vua đứng cột 5 đối đầu Tướng; riêng cánh vua đổi chỗ Mã–Xe (kiểu Chess960) để Pháo không ăn Xe miễn phí ngay nước đầu — cả hai Pháo chỉ ăn được Mã có Xe bảo vệ.</li>
         <li>Phi tướng biến thể B: Tướng và Vua đối mặt trên cột trống chỉ tính là <em>chiếu từ xa</em>, Tướng không bay sang ăn Vua.</li>
@@ -178,6 +183,14 @@
   <!-- ============ MÀN HÌNH CHƠI ============ -->
   <section id="gameScreen" class="game-layout" hidden>
     <div class="board-column">
+      <div class="player-card" id="cardTop">
+        <div class="pc-avatar" id="avatarTop" aria-hidden="true"></div>
+        <div class="pc-info">
+          <div class="pc-name" id="pcNameTop"></div>
+          <div class="pc-sub" id="pcSubTop"></div>
+        </div>
+        <div class="pc-chips" id="chipsTop"></div>
+      </div>
       <div id="turnBanner" class="turn-banner">—</div>
       <div id="rulesBar" class="rules-bar" hidden>
         <div id="rulesLine" class="rules-line"></div>
@@ -189,8 +202,17 @@
       </div>
       <div id="board" class="board skin-squares" role="application" aria-label="Bàn cờ">
         <div id="boardBg" class="board-bg"></div>
+        <div id="riverBand" aria-hidden="true"><span id="riverText">SỞ HÀ · HÁN GIỚI</span></div>
         <div id="hlLayer" class="layer"></div>
         <div id="pieceLayer" class="layer"></div>
+      </div>
+      <div class="player-card" id="cardBottom">
+        <div class="pc-avatar" id="avatarBottom" aria-hidden="true"></div>
+        <div class="pc-info">
+          <div class="pc-name" id="pcNameBottom"></div>
+          <div class="pc-sub" id="pcSubBottom"></div>
+        </div>
+        <div class="pc-chips" id="chipsBottom"></div>
       </div>
       <p class="board-note" id="boardNote"></p>
     </div>
@@ -203,18 +225,18 @@
       </div>
 
       <div class="actions">
-        <button id="undoBtn" class="btn" type="button">↩️ Đi lại</button>
-        <button id="resignBtn" class="btn danger" type="button">🏳️ Xin thua</button>
-        <button id="newGameBtn" class="btn" type="button">🔄 Ván mới / Về thiết lập</button>
+        <button id="undoBtn" class="btn" type="button">Đi lại</button>
+        <button id="resignBtn" class="btn danger" type="button">Xin thua</button>
+        <button id="newGameBtn" class="btn" type="button">Ván mới / Về thiết lập</button>
       </div>
 
       <h3>Biên bản</h3>
       <ol id="moveList" class="move-list"></ol>
 
       <div class="feedback-box">
-        <h3>💬 Góp ý cân bằng</h3>
+        <h3>Góp ý cân bằng</h3>
         <p>Bản này tung ra để lấy ý kiến người chơi. Chơi xong, hãy sao chép biên bản ván đấu và gửi kèm nhận xét của bạn (quân nào quá mạnh/yếu, luật nào khó hiểu…) lên trang góp ý của dự án.</p>
-        <button id="copyRecordBtn" class="btn" type="button">📋 Sao chép biên bản để góp ý</button>
+        <button id="copyRecordBtn" class="btn" type="button">Sao chép biên bản để góp ý</button>
         <a id="feedbackLink" class="btn link-btn" href="#" target="_blank" rel="noopener">Mở trang góp ý (GitHub Issues)</a>
         <p class="hint" id="copyStatus"></p>
       </div>
@@ -225,7 +247,13 @@
 <!-- Modal tung đồng xu -->
 <div id="coinModal" class="modal" hidden>
   <div class="modal-box">
-    <div class="coin" id="coinEl">🪙</div>
+    <div class="coin" id="coinEl" aria-hidden="true">
+      <svg viewBox="0 0 100 100" width="84" height="84" role="img" aria-label="Đồng xu">
+        <circle cx="50" cy="50" r="46" class="coin-face"/>
+        <circle cx="50" cy="50" r="35" class="coin-ring"/>
+        <path d="M50 32 L57 45 L71 46 L60 55 L64 69 L50 61 L36 69 L40 55 L29 46 L43 45 Z" class="coin-star"/>
+      </svg>
+    </div>
     <p id="coinText">Hai người chọn hai kiểu bàn khác nhau — tung đồng xu quyết định…</p>
   </div>
 </div>
@@ -235,10 +263,10 @@
   <div class="modal-box">
     <p><strong>Phong cấp cho Tốt vua — chọn quân:</strong></p>
     <div class="promo-choices">
-      <button type="button" data-promo="queen">♕<small>Hậu</small></button>
-      <button type="button" data-promo="rook">♖<small>Xe</small></button>
-      <button type="button" data-promo="bishop">♗<small>Tượng</small></button>
-      <button type="button" data-promo="knight">♘<small>Mã</small></button>
+      <button type="button" data-promo="queen" aria-label="Phong cấp thành Hậu">♕&#xFE0E;<small>Hậu</small></button>
+      <button type="button" data-promo="rook" aria-label="Phong cấp thành Xe">♖&#xFE0E;<small>Xe</small></button>
+      <button type="button" data-promo="bishop" aria-label="Phong cấp thành Tượng">♗&#xFE0E;<small>Tượng</small></button>
+      <button type="button" data-promo="knight" aria-label="Phong cấp thành Mã">♘&#xFE0E;<small>Mã</small></button>
     </div>
   </div>
 </div>
@@ -246,15 +274,17 @@
 <!-- Modal kết thúc -->
 <div id="endModal" class="modal" hidden>
   <div class="modal-box">
+    <div id="endIcon" class="end-icon" aria-hidden="true"></div>
     <h2 id="endTitle">Kết thúc</h2>
     <p id="endText"></p>
+    <p id="endHonor" class="end-honor" hidden>Chiến thắng của phe yếu thế — giáo mác thắng súng đạn!</p>
     <button id="endSetupBtn" class="btn primary" type="button">Về màn hình thiết lập</button>
     <button id="endWatchBtn" class="btn" type="button">Xem lại bàn cờ</button>
   </div>
 </div>
 
 <footer>
-  <p>Cờ Vua vs Cờ Tướng — dự án game mở, bản MVP v0.2.1. Chạy offline hoàn toàn (trừ chế độ Online Beta). Đưa lên GitHub Pages: chỉ cần đẩy toàn bộ thư mục này lên repo và bật Pages.</p>
+  <p>Cờ Vua vs Cờ Tướng — dự án game mở, bản MVP v0.2.2. Chạy offline hoàn toàn (trừ chế độ Online Beta). Đưa lên GitHub Pages: chỉ cần đẩy toàn bộ thư mục này lên repo và bật Pages.</p>
 </footer>
 
 <script src="game.js"></script>

@@ -1,5 +1,13 @@
 # CHANGELOG — Cờ Vua vs Cờ Tướng
 
+## v0.2.2 — Giao diện "Sơn mài cung đình"
+
+Đổi toàn bộ hình thức sang phong cách sơn mài cung đình (nền đen sơn mài, vàng, đỏ son, gỗ) — **chỉ đổi hình thức, không đụng logic game và engine**. Bộ màu khai báo thành biến CSS trong `:root`, ba font có hỗ trợ tiếng Việt: Playfair Display (tiêu đề), Be Vietnam Pro (chữ thường), Noto Serif SC subset đúng 13 ký tự quân tướng (chữ trên quân cờ tướng). Glyph cờ vua được nối ký tự biến thể văn bản (U+FE0E) để không bị biến thành emoji màu trên iOS/Android. Toàn bộ emoji trong giao diện được gỡ bỏ.
+
+- **Bước 1 — màn hình chơi chính:** bàn cờ khung vàng nhiều lớp; skin ô vuông ô gỗ xen kẽ viền mảnh, skin vạch kẻ nền gỗ đường kẻ nâu; dải sông "SỞ HÀ · HÁN GIỚI" dùng chung cả 2 skin; quân tướng đĩa ngà chữ đỏ son có bóng đổ, quân vua glyph gỗ mun; thêm **thẻ người chơi** hai đầu bàn (avatar quân chủ lực, tên phe, dòng phụ "Giáo mác · đi trước" / "Súng đạn", sáng viền theo lượt đi) và chuyển các chip bộ đếm luật vào thẻ (Du kích nền đỏ son; Trường kỳ, Kho phong cấp viền vàng); dòng nước vừa đi có chấm vàng và tên nước in đậm; nút trong ván theo chuẩn nút chính vàng / nút phụ viền.
+- **Chỉnh thêm sau bước 1:** skin ô vuông đổi dải sông thành đường kẻ vàng 2px giữa hai hàng giữa (skin vạch kẻ giữ dải sông); thẻ người chơi có chế độ gọn khi chiều cao màn hình dưới 720px (ẩn dòng phụ, avatar 28px) và công thức cỡ bàn trên mobile được tính lại để điện thoại 390×700 chơi trọn ván không phải cuộn kể cả khi thanh luật đang hiện; khai báo rõ font dự phòng offline (Georgia / system-ui).
+- **Bước 2 — các màn còn lại:** màn chuẩn bị ván nền thẻ tối, lựa chọn đang chọn viền vàng nền thẻ; đồng xu tung chọn skin vẽ bằng SVG vàng–nâu; ô nhập mã phòng font Playfair cỡ lớn giãn chữ viền vàng, thêm nút "Sao chép mã" (có aria-label); hộp phong cấp nền thẻ viền vàng, mỗi lựa chọn là ô 56px chỉ hiện lựa chọn hợp lệ; thông báo kết thúc dùng icon SVG cúp/bắt tay màu vàng, tiêu đề Playfair, dòng vinh danh phe Tướng thắng thành dải riêng nền đỏ son viền vàng; biên bản ván đấu thành hộp nền tối chữ monospace, nút sao chép là nút chính.
+
 ## v0.2.1 — Tối ưu giao diện mobile
 
 - Thêm CSS responsive cho màn hình nhỏ (≤720px): màn hình thiết lập xếp 1 cột; trong ván, bàn cờ căn giữa và tự giới hạn kích thước theo chiều cao màn hình (`dvh`) để thấy trọn bàn mà không phải cuộn; tiêu đề và khoảng đệm thu gọn.

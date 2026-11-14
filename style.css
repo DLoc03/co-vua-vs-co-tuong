@@ -2,6 +2,29 @@
 :root {
   --ink: #23202b; --muted: #6d6879; --panel: #fffdf8; --line: #e4ddcd;
   --accent: #7b3f12; --accent2: #28536b; --red: #b03024; --gold: #f4b41a;
+  /* ===== Phong cách SƠN MÀI CUNG ĐÌNH (bước 1) ===== */
+  --nen: #1A0E0B;            /* nền trang, đen sơn mài */
+  --the: #2A1611;            /* nền thẻ người chơi, hộp thông tin */
+  --vien-the: #6B4A22;       /* viền thẻ, viền nút phụ */
+  --vang: #D4A64A;           /* vàng chủ đạo */
+  --vang-sang: #E8C77A;      /* hover, chữ nhấn */
+  --chu: #F3E3C3;            /* chữ chính, màu ngà */
+  --chu-phu: #C9B48E;        /* chữ phụ, nhãn nhỏ */
+  --do-son: #9E2B25;         /* chip cảnh báo / bộ đếm Du kích */
+  --go-sang: #D9AE70;        /* ô gỗ sáng */
+  --go-toi: #CDA062;         /* ô gỗ tối */
+  --go-vach: #8F6A3A;        /* đường kẻ skin vạch, viền mảnh của ô */
+  --song: #5A2A1E;           /* dải sông */
+  --chu-song: #E9C98A;       /* chữ trên dải sông */
+  --danh-dau: #F0D58C;       /* ô đi–đến của nước vừa đi */
+  --quan-tuong-nen: #F3E3C3; /* đĩa quân cờ tướng */
+  --quan-tuong-chu: #A3201B; /* chữ quân cờ tướng, đỏ son */
+  --quan-vua: #1F1A17;       /* glyph quân cờ vua, gỗ mun */
+  --khung-dem: #3B1F14;      /* lớp đệm khung bàn */
+  --khung-vien: #8A6A32;     /* viền mảnh sát bàn */
+  --bong-quan: #5A3A1A;      /* bóng dưới đĩa quân tướng */
+  --chu-chip-do: #FBEFD9;    /* chữ trên chip đỏ */
+  --hop-ban: #120A08;        /* nền hộp biên bản */
 }
 body {
   margin: 0; font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
@@ -14,7 +37,7 @@ body {
 .tagline { margin: 0 0 8px; opacity: .92; }
 .version { background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.3); padding: 3px 10px; border-radius: 999px; font-size: 13px; }
 main { max-width: 1180px; margin: 0 auto; padding: 10px 14px 30px; }
-.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; box-shadow: 0 8px 28px rgba(30,20,60,.12); }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; box-shadow: 0 8px 28px color-mix(in srgb, var(--nen) 55%, transparent); }
 .setup { max-width: 760px; margin: 8px auto; }
 .setup h2 { margin-top: 2px; }
 .field { margin-bottom: 14px; }
@@ -59,7 +82,7 @@ select, .room-input {
 .board {
   position: relative; width: 100%; aspect-ratio: 9 / 10; border-radius: 10px; overflow: hidden;
   box-shadow: 0 14px 34px rgba(25, 18, 55, .28); cursor: pointer; user-select: none; touch-action: manipulation;
-  background: #e8cfa0; -webkit-tap-highlight-color: transparent;
+  background: var(--go-sang); -webkit-tap-highlight-color: transparent;
 }
 .board-bg, .board-bg svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .layer { position: absolute; inset: 0; pointer-events: none; }
@@ -143,6 +166,268 @@ footer { max-width: 900px; margin: 0 auto; padding: 4px 16px 26px; text-align: c
 .rules-counters { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
 .rule-chip { background: #fff; border: 1px solid #d8c26a; border-radius: 999px; padding: 2px 10px; font-weight: 600; }
 #endText { white-space: pre-line; }
+
+/* ================= SƠN MÀI CUNG ĐÌNH — BƯỚC 1: MÀN HÌNH CHƠI CHÍNH =================
+   Chỉ áp phong cách cho: tiêu đề, bàn cờ (2 skin), quân, thẻ người chơi, bộ đếm,
+   dòng nước vừa đi, nút trong ván, hộp thông tin bên cạnh. Màn chuẩn bị ván,
+   online, hộp phong cấp và thông báo kết thúc để bước 2. Mọi màu qua biến :root. */
+body {
+  background: var(--nen);
+  color: var(--chu);
+  font-family: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.site-header h1 {
+  font-family: "Playfair Display", Georgia, serif;
+  font-weight: 900; color: var(--vang);
+}
+.site-header .vs { color: var(--vang-sang); }
+.tagline { color: var(--chu-phu); opacity: 1; }
+.version { background: var(--the); border-color: var(--vien-the); color: var(--chu-phu); }
+footer { color: var(--chu-phu); }
+
+/* --- Bàn cờ: khung vàng nhiều lớp (vẽ bằng box-shadow để không lệch tọa độ click) --- */
+.board-column { padding-inline: 9px; }
+.board {
+  border-radius: 8px;
+  box-shadow: 0 0 0 2px var(--vang), 0 0 0 7px var(--khung-dem), 0 0 0 8px var(--khung-vien),
+    0 16px 34px color-mix(in srgb, var(--nen) 65%, transparent);
+}
+/* Skin ô vuông */
+.board.skin-squares .sq-a { fill: var(--go-sang); stroke: var(--go-vach); stroke-width: 1.1; }
+.board.skin-squares .sq-b { fill: var(--go-toi); stroke: var(--go-vach); stroke-width: 1.1; }
+.board.skin-squares .pal-a-fill { fill: color-mix(in srgb, var(--do-son) 13%, transparent); }
+.board.skin-squares .pal-b-fill { fill: color-mix(in srgb, var(--song) 18%, transparent); }
+.board.skin-squares .pal-a-line { stroke: color-mix(in srgb, var(--do-son) 55%, transparent); }
+.board.skin-squares .pal-b-line { stroke: color-mix(in srgb, var(--song) 65%, transparent); }
+.board.skin-squares .svg-frame { stroke: var(--khung-vien); }
+/* Skin vạch kẻ */
+.board.skin-lines .ln-bg { fill: var(--go-sang); }
+.board.skin-lines .ln-inner { fill: color-mix(in srgb, var(--go-sang) 76%, var(--quan-tuong-nen)); stroke: var(--go-vach); }
+.board.skin-lines .ln-lines { stroke: var(--go-vach); }
+.board.skin-lines .ln-frame { stroke: var(--go-vach); }
+/* Dải sông vẽ riêng bằng thẻ HTML cho cả 2 skin — sông trong SVG cũ ẩn đi */
+.board .svg-river, .board .svg-river-text { display: none; }
+#riverBand {
+  position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%);
+  height: 6.6%; z-index: 1; pointer-events: none;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--song); color: var(--chu-song);
+  font-family: "Playfair Display", Georgia, serif; font-weight: 700;
+  letter-spacing: 4px; white-space: nowrap; font-size: clamp(10px, 2.6vw, 19px);
+}
+
+/* --- Quân cờ --- */
+.piece.xiangqi, .piece.xiangqi.side-top, .piece.xiangqi.side-bottom {
+  background: var(--quan-tuong-nen);
+  border: 2px solid var(--quan-tuong-chu);
+  color: var(--quan-tuong-chu);
+  font-family: "Noto Serif SC", Georgia, serif; font-weight: 700;
+  box-shadow: 0 2px 0 var(--bong-quan),
+    inset 0 0 0 2px var(--quan-tuong-nen), inset 0 0 0 4px var(--quan-tuong-chu);
+}
+.piece.chess, .piece.chess.side-top, .piece.chess.side-bottom {
+  color: var(--quan-vua);
+  text-shadow: 0 1px 0 color-mix(in srgb, var(--quan-tuong-nen) 55%, transparent),
+    0 2px 3px color-mix(in srgb, var(--nen) 35%, transparent);
+}
+.piece.selected { filter: drop-shadow(0 0 7px var(--vang)) drop-shadow(0 0 3px var(--vang-sang)); }
+.piece.in-check { filter: drop-shadow(0 0 9px var(--do-son)) drop-shadow(0 0 4px var(--do-son)); }
+.piece.last-move { background-color: color-mix(in srgb, var(--danh-dau) 50%, transparent); }
+.hl.move { background: color-mix(in srgb, var(--nen) 52%, transparent); }
+.hl.capture { border-color: color-mix(in srgb, var(--do-son) 82%, transparent); }
+.hl.lastmove { background: color-mix(in srgb, var(--danh-dau) 55%, transparent); animation-name: lastPulseLac; }
+@keyframes lastPulseLac {
+  from { background: color-mix(in srgb, var(--danh-dau) 82%, transparent); }
+  to { background: color-mix(in srgb, var(--danh-dau) 30%, transparent); }
+}
+
+/* --- Thẻ người chơi --- */
+.player-card {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--the); border: 1px solid var(--vien-the); border-radius: 12px;
+  padding: 10px 12px; margin-bottom: 10px;
+}
+#cardBottom { margin-bottom: 0; margin-top: 10px; }
+.player-card.active { border-color: var(--vang); box-shadow: 0 0 0 1px var(--vang); }
+.pc-avatar {
+  width: 46px; height: 46px; flex: none; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 23px; line-height: 1;
+  background: var(--quan-tuong-nen); border: 2px solid var(--vang);
+}
+.pc-avatar-xq { color: var(--quan-tuong-chu); font-family: "Noto Serif SC", Georgia, serif; font-weight: 700; }
+.pc-avatar-chess { color: var(--quan-vua); }
+.pc-info { min-width: 0; }
+.pc-name { font-weight: 700; font-size: 16px; color: var(--chu); }
+.pc-sub { font-size: 13px; color: var(--chu-phu); }
+.pc-chips { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* --- Banner lượt đi, thanh luật, chip bộ đếm --- */
+.turn-banner { background: var(--the); border-color: var(--vien-the); color: var(--chu); }
+.turn-banner.check {
+  background: color-mix(in srgb, var(--do-son) 32%, var(--the));
+  border-color: var(--do-son); color: var(--chu);
+}
+.rules-bar { background: var(--the); border-color: var(--vien-the); color: var(--chu); }
+.rules-counters { display: none; }
+.rule-chip {
+  background: transparent; border: 1px solid var(--vang); color: var(--vang-sang);
+  border-radius: 999px; padding: 4px 12px; font-weight: 600; font-size: 13.5px;
+}
+.rule-chip.chip-guerrilla { background: var(--do-son); border-color: var(--do-son); color: var(--chu-chip-do); font-weight: 700; }
+
+/* --- Dòng nước vừa đi --- */
+.board-note { color: var(--chu-phu); }
+.board-note .last-dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--vang); margin-right: 6px;
+}
+.board-note strong { color: var(--chu); }
+
+/* --- Hộp thông tin bên cạnh + nút trong ván --- */
+.side-panel { background: var(--the); border-color: var(--vien-the); color: var(--chu); }
+.side-panel h3 { color: var(--vang-sang); }
+.top-tag { background: var(--do-son); color: var(--chu-chip-do); }
+.bottom-tag { background: var(--khung-dem); color: var(--chu); border: 1px solid var(--vien-the); }
+.captured-list { color: var(--chu); font-family: "Noto Serif SC", serif; }
+.move-list { color: var(--chu); }
+.move-list li::marker { color: var(--chu-phu); }
+.feedback-box { border-top-color: var(--vien-the); }
+.feedback-box p, .side-panel .hint { color: var(--chu-phu); }
+.game-layout .btn {
+  background: transparent; border: 1px solid var(--vien-the); color: var(--chu);
+  border-radius: 10px; min-height: 44px;
+}
+.game-layout .btn:hover { border-color: var(--vang); color: var(--vang-sang); filter: none; }
+.game-layout .btn.primary, #newGameBtn, #copyRecordBtn {
+  background: var(--vang); border-color: var(--vang); color: var(--nen); font-weight: 700;
+}
+.game-layout .btn.primary:hover, #newGameBtn:hover, #copyRecordBtn:hover { background: var(--vang-sang); color: var(--nen); }
+.game-layout .btn.danger {
+  color: color-mix(in srgb, var(--do-son) 38%, var(--chu));
+  border-color: color-mix(in srgb, var(--do-son) 55%, var(--vien-the));
+}
+
+/* Mobile: chừa thêm chiều cao cho 2 thẻ người chơi khi tính cỡ bàn */
+@media (max-width: 720px) {
+  .board {
+    width: min(100%, max(230px, calc((100vh - 328px) * 0.9)));
+    width: min(100%, max(230px, calc((100dvh - 328px) * 0.9)));
+  }
+  .player-card { padding: 8px 10px; gap: 9px; }
+  .pc-avatar { width: 38px; height: 38px; font-size: 19px; }
+  .pc-name { font-size: 15px; }
+  #riverBand { letter-spacing: 2.5px; }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .player-card { padding: 6px 10px; }
+  .pc-avatar { width: 34px; height: 34px; font-size: 17px; }
+  .pc-sub { display: none; }
+}
+
+/* ================= SƠN MÀI CUNG ĐÌNH — BƯỚC 1.5: CHỈNH THÊM ================= */
+/* Skin ô vuông: sông chỉ là đường kẻ vàng 2px giữa hai hàng giữa, không chữ
+   (phần đệm khung hai bên chỉ 5px, không đủ chỗ cho chữ 11px). Skin vạch kẻ giữ dải sông. */
+.board.skin-squares #riverBand { height: 2px; background: var(--vang); }
+.board.skin-squares #riverText { display: none; }
+
+/* Thẻ người chơi chế độ gọn khi màn hình thấp: ẩn dòng phụ, avatar nhỏ, đệm mỏng */
+@media (max-height: 719px) {
+  .pc-sub { display: none; }
+  .pc-avatar { width: 28px; height: 28px; font-size: 15px; }
+  .player-card { padding: 6px 10px; }
+}
+
+/* ================= SƠN MÀI CUNG ĐÌNH — BƯỚC 2: CÁC MÀN CÒN LẠI ================= */
+/* --- Nút bấm toàn cục --- */
+.btn {
+  background: transparent; border: 1px solid var(--vien-the); color: var(--chu);
+  border-radius: 10px; min-height: 44px;
+}
+.btn:hover { border-color: var(--vang); color: var(--vang-sang); filter: none; }
+.btn.primary { background: var(--vang); border-color: var(--vang); color: var(--nen); font-weight: 700; }
+.btn.primary:hover { background: var(--vang-sang); color: var(--nen); }
+.btn.danger {
+  color: color-mix(in srgb, var(--do-son) 38%, var(--chu));
+  border-color: color-mix(in srgb, var(--do-son) 55%, var(--vien-the));
+}
+
+/* --- Màn chuẩn bị ván --- */
+.setup { background: var(--the); border-color: var(--vien-the); color: var(--chu); }
+.setup h2 { font-family: "Playfair Display", Georgia, serif; font-weight: 700; color: var(--vang); }
+.field-label { color: var(--chu); }
+.setup select, .setup .room-input {
+  background: var(--nen); color: var(--chu); border-color: var(--vien-the);
+}
+.setup select:focus, .setup .room-input:focus { border-color: var(--vang); outline: none; }
+.radio-card { background: transparent; border-color: var(--vien-the); color: var(--chu); }
+.radio-card small { color: var(--chu-phu); }
+.radio-card:has(input:checked) {
+  border-color: var(--vang);
+  background: color-mix(in srgb, var(--vang) 10%, var(--the));
+}
+.radio-card input, .rule-row input[type="checkbox"] { accent-color: var(--vang); }
+.setup .hint { color: var(--chu-phu); }
+.rules-box .hint-inline { color: var(--chu-phu); }
+.rules-box {
+  background: color-mix(in srgb, var(--the) 62%, var(--nen));
+  border-color: var(--vien-the);
+}
+.rule-row { border-top-color: color-mix(in srgb, var(--vien-the) 50%, transparent); color: var(--chu); }
+.rule-row select { background: var(--nen); color: var(--chu); border-color: var(--vien-the); }
+.online-box { background: var(--nen); border-color: var(--vien-the); }
+.or { color: var(--chu-phu); }
+.rules summary { color: var(--chu); }
+.rules li { color: var(--chu); }
+
+/* --- Online: ô mã phòng --- */
+#roomCodeInput {
+  font-family: "Playfair Display", Georgia, serif; font-size: 22px; font-weight: 700;
+  letter-spacing: 3px; text-align: center; text-transform: uppercase;
+  background: var(--nen); color: var(--vang-sang); border: 1.5px solid var(--vang);
+}
+
+/* --- Hộp thoại nói chung + tung đồng xu --- */
+.modal { background: color-mix(in srgb, var(--nen) 68%, transparent); }
+#coinModal .modal-box, #promoModal .modal-box, #endModal .modal-box {
+  background: var(--the); border: 1.5px solid var(--vien-the); color: var(--chu);
+}
+#coinModal .modal-box p, #promoModal .modal-box p { color: var(--chu); }
+.coin { font-size: 0; animation: spin 0.9s linear infinite; }
+.coin svg { display: block; margin: 0 auto; }
+.coin-face { fill: var(--vang); stroke: var(--khung-vien); stroke-width: 2.5; }
+.coin-ring { fill: none; stroke: var(--khung-dem); stroke-width: 2; }
+.coin-star { fill: var(--khung-dem); }
+
+/* --- Hộp phong cấp --- */
+#promoModal .modal-box { border-color: var(--vang); }
+#promoModal .promo-choices button {
+  width: 56px; height: 56px; font-size: 25px;
+  background: var(--nen); border: 1.5px solid var(--vien-the); color: var(--chu);
+  border-radius: 10px;
+}
+#promoModal .promo-choices button small { font-size: 10px; color: var(--chu-phu); }
+#promoModal .promo-choices button:hover { border-color: var(--vang); }
+
+/* --- Thông báo kết thúc ván --- */
+#endTitle {
+  font-family: "Playfair Display", Georgia, serif; font-weight: 900;
+  color: var(--vang); margin: 4px 0 8px;
+}
+.end-icon { color: var(--vang); }
+.end-icon svg { width: 46px; height: 46px; }
+#endText { color: var(--chu); white-space: pre-line; }
+.end-honor {
+  background: var(--do-son); border: 1px solid var(--vang); color: var(--chu-chip-do);
+  border-radius: 10px; padding: 10px 12px; font-weight: 600; margin: 12px 0 4px;
+}
+
+/* --- Biên bản ván đấu --- */
+.move-list {
+  background: var(--hop-ban); border: 1px solid var(--vien-the); border-radius: 10px;
+  padding: 10px 12px 10px 36px;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 13.5px;
+}
 
 /* ================= MOBILE (v0.2.1) =================
    Mục tiêu: trên điện thoại, bàn cờ vừa trọn chiều cao màn hình (không phải
