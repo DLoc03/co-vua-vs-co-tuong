@@ -14,7 +14,7 @@
 <header class="site-header">
   <h1>Cờ Vua <span class="vs">vs</span> Cờ Tướng</h1>
   <p class="tagline">Một bàn cờ, hai nền văn minh. Bên cầm bộ cờ tướng đấu với bên cầm bộ cờ vua.</p>
-  <span class="version">Bản v0.2.2 — đang lấy ý kiến người chơi</span>
+  <span class="version">Bản v0.2.3 — đang lấy ý kiến người chơi</span>
 </header>
 
 <main>
@@ -188,6 +188,7 @@
         <div class="pc-info">
           <div class="pc-name" id="pcNameTop"></div>
           <div class="pc-sub" id="pcSubTop"></div>
+          <span class="pc-check" id="pcCheckTop" role="alert" hidden>Đang bị chiếu!</span>
         </div>
         <div class="pc-chips" id="chipsTop"></div>
       </div>
@@ -211,10 +212,12 @@
         <div class="pc-info">
           <div class="pc-name" id="pcNameBottom"></div>
           <div class="pc-sub" id="pcSubBottom"></div>
+          <span class="pc-check" id="pcCheckBottom" role="alert" hidden>Đang bị chiếu!</span>
         </div>
         <div class="pc-chips" id="chipsBottom"></div>
       </div>
       <p class="board-note" id="boardNote"></p>
+      <p class="conn-status" id="connStatus" role="status" hidden>Mất kết nối, đang thử lại…</p>
     </div>
 
     <aside class="side-panel panel">
@@ -284,7 +287,7 @@
 </div>
 
 <footer>
-  <p>Cờ Vua vs Cờ Tướng — dự án game mở, bản MVP v0.2.2. Chạy offline hoàn toàn (trừ chế độ Online Beta). Đưa lên GitHub Pages: chỉ cần đẩy toàn bộ thư mục này lên repo và bật Pages.</p>
+  <p>Cờ Vua vs Cờ Tướng — dự án game mở, bản MVP v0.2.3. Chạy offline hoàn toàn (trừ chế độ Online Beta). Đưa lên GitHub Pages: chỉ cần đẩy toàn bộ thư mục này lên repo và bật Pages.</p>
 </footer>
 
 <script src="game.js"></script>

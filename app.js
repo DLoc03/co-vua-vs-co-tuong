@@ -4,7 +4,7 @@
 // Chủ dự án: điền link trang góp ý của repo (ví dụ GitHub Issues) vào đây khi tung bản public.
 const FEEDBACK_URL = 'https://github.com/DLoc03/co-vua-vs-co-tuong/issues';
 const PEER_PREFIX = 'cvvct-game-';
-const VERSION = 'v0.2.2';
+const VERSION = 'v0.2.3';
 
 const $ = id => document.getElementById(id);
 const E = window.Engine;
@@ -206,6 +206,7 @@ function startGame(skin, armies, rules) {
   $('setupScreen').hidden = true;
   $('gameScreen').hidden = false;
   $('endModal').hidden = true;
+  hideConnStatus();
   render();
   maybeAiTurn();
 }
@@ -262,12 +263,6 @@ function reasonText(reason) {
 
 function performMove(move, source) {
   if (G.over) return false;
-  // Online: khách không tự áp nước đi, gửi cho chủ phòng xác nhận
-  if (G.mode === 'online' && !G.online.isHost && source === 'local') {
-    if (G.online.conn) G.online.conn.send({ type: 'move', move });
-    $('boardNote').textContent = 'Đã gửi nước đi, chờ chủ phòng xác nhận…';
-    return true;
-  }
   const legal = E.legalMoves(G.board, G.board.turn);
   const ok = legal.some(m => m.fx === move.fx && m.fy === move.fy && m.tx === move.tx && m.ty === move.ty);
   if (!ok) return false;
@@ -287,6 +282,12 @@ function performMove(move, source) {
   G.history.push({ move: finalMove, text });
   G.lastMove = finalMove;
   G.selected = null; G.legalForSelected = [];
+
+  // Online: khách cũng đi NGAY ở máy mình như bình thường, đồng thời gửi nước cho chủ phòng.
+  // Chủ phòng kiểm chứng ngầm (chống lệch bàn / sửa code) — lệch thì khách tự đồng bộ lại theo state chuẩn, không hề thông báo.
+  if (G.mode === 'online' && !G.online.isHost && source === 'local' && G.online.conn && G.online.conn.open) {
+    G.online.conn.send({ type: 'move', move: finalMove });
+  }
 
   // Kết quả ván (kể cả lặp thế) do engine quyết định toàn bộ — giao diện chỉ đọc.
   const st = E.gameStatus(G.board);
@@ -427,6 +428,7 @@ const capSide = s => s.charAt(0).toUpperCase() + s.slice(1);
 function renderCards() {
   const b = G.board;
   if (!b) return;
+  const checkSide = !G.over && E.gameStatus(b).check ? b.turn : null;
   for (const side of ['top', 'bottom']) {
     const army = b.armies[side];
     const isXq = army === 'xiangqi';
@@ -436,6 +438,7 @@ function renderCards() {
     $('pcName' + capSide(side)).textContent = isXq ? 'Phe Tướng' : 'Phe Vua';
     $('pcSub' + capSide(side)).textContent = isXq ? 'Giáo mác · đi trước' : 'Súng đạn';
     $('card' + capSide(side)).classList.toggle('active', b.turn === side && !G.over);
+    $('pcCheck' + capSide(side)).hidden = checkSide !== side;
   }
   const xqChips = $('chips' + capSide(E.xiangqiSideOf(b) || 'top'));
   const chChips = $('chips' + capSide(E.chessSideOf(b) || 'top'));
@@ -542,16 +545,21 @@ $('resignBtn').addEventListener('click', () => {
   endGame(E.otherSide(resignSide), `${sideName(resignSide)} đã xin thua.`);
 });
 
-$('newGameBtn').addEventListener('click', () => {
+/** Bấm "Ván mới": đang đấu online trong phòng thì TÁI ĐẤU ngay trong cùng phòng
+ *  (chủ phòng mở ván mới, khách gửi yêu cầu để chủ phòng mở) — ngoài online thì về màn hình thiết lập. */
+function newGameOrRematch() {
+  if (G.mode === 'online' && G.online.started && G.online.conn) {
+    $('endModal').hidden = true;
+    if (G.online.isHost) startRematch();
+    else if (G.online.conn.open) G.online.conn.send({ type: 'rematch' });
+    return;
+  }
   $('gameScreen').hidden = true;
   $('setupScreen').hidden = false;
   $('endModal').hidden = true;
-});
-$('endSetupBtn').addEventListener('click', () => {
-  $('endModal').hidden = true;
-  $('gameScreen').hidden = true;
-  $('setupScreen').hidden = false;
-});
+}
+$('newGameBtn').addEventListener('click', newGameOrRematch);
+$('endSetupBtn').addEventListener('click', newGameOrRematch);
 $('endWatchBtn').addEventListener('click', () => { $('endModal').hidden = true; });
 
 $('copyRecordBtn').addEventListener('click', async () => {
@@ -591,6 +599,10 @@ function makeRoomCode() {
 }
 function onlineStatus(text) { $('onlineStatus').textContent = text; }
 
+/* Trạng thái kết nối TRONG ván: chỉ hiện khi mất kết nối, ngoài ra luôn ẩn. */
+function showConnStatus() { const el = $('connStatus'); if (el) el.hidden = false; }
+function hideConnStatus() { const el = $('connStatus'); if (el) el.hidden = true; }
+
 $('copyCodeBtn').addEventListener('click', async () => {
   if (!G.online.code) return;
   try {
@@ -609,7 +621,17 @@ function serializeGame() {
 }
 function applyRemoteState(s, yourSide) {
   if (yourSide) G.mySide = yourSide;
-  if (G.mode === 'online' && !G.online.isHost) setRulesReadOnly(true); // khách chỉ xem luật của chủ phòng
+  if (G.mode === 'online') {
+    G.online.started = true;
+    hideConnStatus(); // nhận được state tức là kết nối đang sống
+    if (!G.online.isHost) {
+      setRulesReadOnly(true); // khách chỉ xem luật của chủ phòng
+      // Lệch thế cờ (nước đi lạc quan bị chủ phòng bác): tự đồng bộ im lặng theo state chuẩn, chỉ ghi log debug
+      if (G.history && s.history && s.history.length < G.history.length) {
+        console.warn('[online] Thế cờ lệch — tự đồng bộ theo state của chủ phòng.');
+      }
+    }
+  }
   if (!s.history || s.history.length === 0) {
     G.pieceEls.clear();
     $('pieceLayer').innerHTML = '';
@@ -629,14 +651,26 @@ function broadcastState() {
   }
 }
 
+/** Tái đấu trong cùng phòng: giữ nguyên quân hai bên, kiểu bàn và luật của ván trước. Chỉ chủ phòng gọi. */
+function startRematch() {
+  if (G.mode !== 'online' || !G.online.isHost || !G.board) return;
+  const armies = { ...G.board.armies };
+  const rules = G.board.rules ? { ...G.board.rules } : undefined;
+  startGame(G.skin, armies, rules);
+  G.online.started = true;
+  broadcastState();
+}
+
 $('createRoomBtn').addEventListener('click', async () => {
   try {
     await loadPeerJs();
     G.mode = 'online';
+    G.online.started = false; // phòng mới = phiên mới: hello đầu tiên phải được tính là bắt đầu ván
     setRulesReadOnly(false); // chủ phòng được chọn luật
     const code = makeRoomCode();
     G.online.code = code;
     G.online.isHost = true;
+    if (G.online.peer) { try { G.online.peer.destroy(); } catch (_) {} } // dọn peer cũ nếu tạo phòng lại
     const peer = new window.Peer(PEER_PREFIX + code);
     G.online.peer = peer;
     peer.on('open', () => {
@@ -647,8 +681,10 @@ $('createRoomBtn').addEventListener('click', async () => {
       G.online.conn = conn;
       conn.on('open', () => onlineStatus('Đối thủ đã kết nối, chờ họ chọn kiểu bàn…'));
       conn.on('data', msg => {
+        hideConnStatus();
         if (!msg || typeof msg !== 'object') return;
         if (msg.type === 'hello') {
+          if (G.online.started) { broadcastState(); return; } // hello trùng / khách kết nối lại: chỉ đồng bộ lại state, KHÔNG reset ván đang đấu
           const hostArmy = $('hostArmy').value;
           G.mySide = hostArmy === 'xiangqi' ? 'top' : 'bottom';
           const armies = { top: 'xiangqi', bottom: 'chess' };
@@ -659,13 +695,25 @@ $('createRoomBtn').addEventListener('click', async () => {
             onlineStatus('Ván đấu online đã bắt đầu!');
           });
         } else if (msg.type === 'move') {
-          if (G.board && G.board.turn === E.otherSide(G.mySide)) performMove(msg.move, 'remote');
+          const guestsTurn = G.board && G.board.turn === E.otherSide(G.mySide);
+          if (!guestsTurn || !performMove(msg.move, 'remote')) {
+            // Kiểm chứng ngầm: nước đi lệch hoặc không hợp lệ — KHÔNG báo người chơi,
+            // chỉ gửi lại state chuẩn để máy khách tự đồng bộ, ghi log để debug.
+            console.warn('[online] Nước đi của khách không khớp thế cờ — đã gửi lại state chuẩn để đồng bộ.', msg.move);
+            broadcastState();
+          }
+        } else if (msg.type === 'rematch') {
+          startRematch(); // khách xin tái đấu trong cùng phòng
         } else if (msg.type === 'resign') {
           endGame(G.mySide, `${sideName(E.otherSide(G.mySide))} đã xin thua.`);
         }
       });
-      conn.on('close', () => onlineStatus('Đối thủ đã ngắt kết nối.'));
+      conn.on('close', () => {
+        if (G.online.started) showConnStatus();
+        else onlineStatus('Đối thủ đã ngắt kết nối.');
+      });
     });
+    peer.on('disconnected', () => { if (G.online.started) showConnStatus(); peer.reconnect(); });
     peer.on('error', err => onlineStatus('Lỗi kết nối: ' + err.type + '. Hãy thử tạo lại phòng.'));
   } catch (e) {
     onlineStatus(e.message);
@@ -676,10 +724,12 @@ $('joinRoomBtn').addEventListener('click', async () => {
   try {
     await loadPeerJs();
     G.mode = 'online';
+    G.online.started = false; // vào phòng mới = phiên mới
     setRulesReadOnly(true); // khách vào phòng: luật do chủ phòng quyết định
     const code = $('roomCodeInput').value.trim().toUpperCase();
     if (code.length !== 5) { onlineStatus('Mã phòng gồm 5 ký tự — hãy kiểm tra lại.'); return; }
     G.online.isHost = false;
+    if (G.online.peer) { try { G.online.peer.destroy(); } catch (_) {} } // dọn peer cũ nếu vào phòng lại
     const peer = new window.Peer();
     G.online.peer = peer;
     peer.on('open', () => {
@@ -692,8 +742,12 @@ $('joinRoomBtn').addEventListener('click', async () => {
       conn.on('data', msg => {
         if (msg && msg.type === 'state') applyRemoteState(msg.state, msg.yourSide);
       });
-      conn.on('close', () => onlineStatus('Chủ phòng đã ngắt kết nối.'));
+      conn.on('close', () => {
+        if (G.online.started) showConnStatus();
+        else onlineStatus('Chủ phòng đã ngắt kết nối.');
+      });
     });
+    peer.on('disconnected', () => { if (G.online.started) showConnStatus(); peer.reconnect(); });
     peer.on('error', err => onlineStatus('Không vào được phòng (' + err.type + ') — kiểm tra mã phòng và đường truyền.'));
   } catch (e) {
     onlineStatus(e.message);

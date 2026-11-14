@@ -248,6 +248,43 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check('guest: rules line still shows host rules', $('rulesLine').textContent.includes('Du kích'), $('rulesLine').textContent);
   setRadio('mode', 'hotseat');
 
+  // --- v0.2.3: hành vi online — khách đi ngay, cảnh báo chiếu trên thẻ, trạng thái kết nối ---
+  {
+    const checkState = {
+      armies: { top: 'xiangqi', bottom: 'chess' },
+      pieces: [CP('g3', 'xiangqi', 'general', 'top', 3, 0), CP('c3', 'xiangqi', 'chariot', 'top', 4, 5),
+        CP('k3', 'chess', 'king', 'bottom', 4, 9), CP('p3', 'chess', 'pawn', 'bottom', 0, 6)],
+      turn: 'bottom',
+      rules: { ...window.Engine.DEFAULT_RULES },
+      counters: freshCounters(), posHistory: [], moveFlags: [], capturedChess: [],
+    };
+    window.applyRemoteState(craftState(JSON.parse(JSON.stringify(checkState))), 'bottom');
+    await sleep(80);
+    check('check badge shows on the checked player card', !$('pcCheckBottom').hidden && $('pcCheckBottom').textContent.includes('Đang bị chiếu'));
+    check('check badge hidden on the other card', $('pcCheckTop').hidden);
+    check('checked royal piece glows (in-check)', [...doc.querySelectorAll('.piece')].some(e => e.classList.contains('in-check')));
+
+    window.eval("G.mode = 'online'; G.online.isHost = false; G.online.started = true; window.__sent = []; G.online.conn = { open: true, send(m) { window.__sent.push(m); } };");
+    clickBoard(4, 9);
+    await sleep(60);
+    clickBoard(5, 9);
+    await sleep(80);
+    check('guest move applies immediately on own screen', window.eval('G.board.turn') === 'top');
+    check('guest move sent to host in background', window.eval('window.__sent.length') === 1 && window.eval('window.__sent[0].type') === 'move');
+    check('no waiting-for-host text anywhere', !$('boardNote').textContent.includes('chờ') && !$('boardNote').textContent.includes('xác nhận'),
+      $('boardNote').textContent);
+    check('check badge clears after escaping check', $('pcCheckBottom').hidden);
+    window.eval("G.mode = 'hotseat'; G.online.conn = null;");
+
+    check('conn status hidden by default', $('connStatus').hidden && $('connStatus').textContent.includes('Mất kết nối, đang thử lại'));
+    window.eval('showConnStatus()');
+    check('conn status appears only on disconnect', !$('connStatus').hidden);
+    window.eval('hideConnStatus()');
+    check('conn status hides again when reconnected', $('connStatus').hidden);
+    const css3 = require('fs').readFileSync(path.join(__dirname, '..', 'style.css'), 'utf8');
+    check('css has check badge + conn status styles', css3.includes('.pc-check') && css3.includes('.conn-status'));
+  }
+
   // ================= v0.2.1: KIỂM TRA CSS MOBILE =================
   {
     const css = require('fs').readFileSync(path.join(__dirname, '..', 'style.css'), 'utf8');
@@ -257,6 +294,71 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     check('mobile: form inputs 16px (no iOS auto-zoom)', css.includes('font-size: 16px'));
     check('landscape phones: dedicated media query', css.includes('orientation: landscape'));
     check('viewport meta present', doc.querySelector('meta[name="viewport"]') !== null);
+  }
+
+  // --- v0.2.3 bổ sung: vòng đời CHỦ PHÒNG — đi ngay ở mọi thời điểm, isHost không bao giờ bị lật ---
+  {
+    class FakeConn {
+      constructor() { this.handlers = {}; this.sent = []; this.open = true; }
+      on(ev, cb) { this.handlers[ev] = cb; }
+      emit(ev, arg) { if (this.handlers[ev]) this.handlers[ev](arg); }
+      send(m) { this.sent.push(m); }
+    }
+    class FakePeer {
+      constructor(id) { this.id = id; this.handlers = {}; window.__hostPeer = this; }
+      on(ev, cb) { this.handlers[ev] = cb; }
+      emit(ev, arg) { if (this.handlers[ev]) this.handlers[ev](arg); }
+      reconnect() {}
+      destroy() {}
+    }
+    window.Peer = FakePeer;
+    setRadio('mode', 'online');
+    $('hostArmy').value = 'xiangqi';
+    $('mySkinOnline').value = 'squares';
+    $('createRoomBtn').click();
+    await sleep(80);
+    const peer = window.__hostPeer;
+    check('host: room created with a peer', !!peer);
+    peer.emit('open', 'cvvct-test');
+    check('host: isHost true after creating room', window.eval('G.online.isHost') === true);
+    const conn = new FakeConn();
+    peer.emit('connection', conn);
+    conn.emit('open');
+    conn.emit('data', { type: 'hello', skinPref: 'squares' });
+    await sleep(80);
+    check('host: game started in the room', !$('gameScreen').hidden && window.eval('G.online.started') === true);
+    check('host: initial state broadcast to guest', conn.sent.some(m => m.type === 'state'));
+    clickBoard(0, 3);
+    await sleep(50);
+    clickBoard(0, 4);
+    await sleep(80);
+    check('host: first move applies immediately', window.eval('G.history.length') === 1 && window.eval('G.board.turn') === 'bottom',
+      window.eval('JSON.stringify(G.history.length)'));
+    check('host: no confirmation-wait text after own move', !$('boardNote').textContent.includes('xác nhận'), $('boardNote').textContent);
+    check('host: isHost still true after own move', window.eval('G.online.isHost') === true);
+    conn.emit('data', { type: 'move', move: { fx: 0, fy: 8, tx: 0, ty: 7 } });
+    await sleep(80);
+    check('host: guest move applied, turn returns', window.eval('G.history.length') === 2 && window.eval('G.board.turn') === 'top');
+    conn.emit('data', { type: 'hello', skinPref: 'squares' });
+    await sleep(50);
+    check('host: duplicate hello does not reset the running game', window.eval('G.history.length') === 2);
+    check('host: isHost still true after guest reconnect-hello', window.eval('G.online.isHost') === true);
+    conn.emit('data', { type: 'resign' });
+    await sleep(80);
+    check('host: end modal shows after guest resigns', !$('endModal').hidden && window.eval('G.over') === true);
+    $('endSetupBtn').click();
+    await sleep(80);
+    check('host: new-game button rematches inside the same room', window.eval('G.history.length') === 0 && window.eval('G.over') === false && !$('gameScreen').hidden);
+    check('host: rematch state broadcast to guest', conn.sent.filter(m => m.type === 'state').length >= 3);
+    check('host: isHost still true after rematch', window.eval('G.online.isHost') === true);
+    clickBoard(0, 3);
+    await sleep(50);
+    clickBoard(0, 4);
+    await sleep(80);
+    check('host: moves immediately in the rematch game', window.eval('G.history.length') === 1);
+    check('host: isHost true at the end of the lifecycle', window.eval('G.online.isHost') === true);
+    window.eval("G.mode = 'hotseat';");
+    setRadio('mode', 'hotseat');
   }
 
   console.log(failures === 0 ? '\nALL UI TESTS PASSED' : `\n${failures} UI TEST(S) FAILED`);
